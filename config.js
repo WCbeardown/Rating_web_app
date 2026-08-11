@@ -1,0 +1,1 @@
+window.LEGACY_STREAMLIT_URL = "";
