@@ -1,20 +1,24 @@
-# 羽曳野 レイティング・大会データ 統合版
+# レイティング比較グラフ（GitHub Pages版）
 
-## 構成
-- `/` トップ
-- `/rating/` レイティング比較
-- `/winners/` 入賞者検索
-- `/match-rating/` 勝敗・レイティング計算
-- 旧Streamlit版はトップの `config.js` にURLを設定
+## ファイル構成
 
-## GitHub Pages
-1. このフォルダの中身をRepositoryへアップロード。
-2. Settings → Pages → Deploy from a branch → main / root。
-3. 数分後に公開。
+- `index.html`：画面
+- `style.css`：スマホ対応のデザイン
+- `app.js`：CSV読み込み・集計・グラフ・表の処理
+- `data/rating_data_all.csv`：元データ
 
-## 必要なCSV
-`data/rating_data_all.csv` は同梱済みです。
-`data/winner_list.csv` は元のStreamlit版で使用しているものを追加してください。元アプリではこのCSVに「日付」「名前」「チーム名」「クラス」「部」「位」の列を使用しています。
+## GitHub Pagesで公開する手順
 
-## 旧Streamlit URL
-`config.js` の `LEGACY_STREAMLIT_URL` に②のStreamlitアプリURLを入れてください。
+1. GitHubで新しいPublic Repositoryを作成。
+2. このフォルダの中身をRepositoryのルートにアップロード。
+3. `Settings` → `Pages` を開く。
+4. `Build and deployment` の `Source` を `Deploy from a branch` にする。
+5. Branchを `main`、Folderを `/ (root)` にしてSave。
+6. 数分待つと `https://ユーザー名.github.io/リポジトリ名/` で公開される。
+
+## 注意
+
+グラフにはChart.jsをjsDelivr CDNから読み込んでいます。
+インターネット接続がある環境で利用してください。
+
+CSVはブラウザ上で読み込んで処理します。サーバー側で会員番号を検索する構成ではありません。

@@ -1,1 +1,80 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f172a"><title>羽曳野 レイティング・大会データ</title><link rel="stylesheet" href="style.css"></head><body><main class="container"><header class="site-header"><p class="eyebrow">HABIKINO RATING &amp; TOURNAMENT DATA</p><h1>羽曳野<br>レイティング・大会データ</h1><p>レイティングや大会データをスマホから便利に利用できます。</p></header><section class="panel"><h2>何をしますか？</h2><p class="hint">下のメニューから選んでください。</p></section><section class="grid cards"><a class="app-card" href="rating/"><div class="app-icon">📈</div><h2>レイティング比較</h2><p>最大6人までレイティングの推移を比較。年平均・分析・詳細データも確認できます。</p><span class="button primary">開く</span></a><a class="app-card" href="winners/"><div class="app-icon">🏆</div><h2>入賞者検索</h2><p>苗字・名前・チーム名から過去の入賞者を検索し、部・順位別に集計します。</p><span class="button primary">開く</span></a><a class="app-card" href="match-rating/"><div class="app-icon">🎾</div><h2>勝敗・レイティング計算</h2><p>大会参加者を貼り付け、基準選手を選んで勝敗を入力すると増減を計算します。</p><span class="button primary">開く</span></a><a class="app-card" id="legacyCard" href="#"><div class="app-icon">➕</div><h2>大会レイティング増減計算</h2><p>従来のStreamlit版。Googleレンズで取得した大会結果から大会後レイティングとの増減を計算します。</p><span class="button secondary">Streamlit版を開く</span></a></section><section class="panel"><div class="notice"><strong>データについて</strong><br>レイティング比較・勝敗計算は、このサイトに配置したCSVデータをブラウザ上で読み込みます。入賞者検索には <code>winner_list.csv</code> が必要です。</div></section><footer class="footer">羽曳野 レイティング・大会データ</footer></main><script src="config.js"></script><script>const u=window.LEGACY_STREAMLIT_URL||"";const a=document.getElementById("legacyCard");if(u){a.href=u;a.querySelector(".button").textContent="Streamlit版を開く";a.target="_blank";a.rel="noopener"}else{a.style.opacity=".65";a.querySelector(".button").textContent="URL未設定";a.addEventListener("click",e=>{e.preventDefault();alert("config.js に従来のStreamlit版URLを設定してください。");})}</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>レイティング 比較グラフ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <p class="eyebrow">RATING GRAPH</p>
+      <h1>レイティング 比較グラフ</h1>
+      <p class="description">羽曳野・若葉・奈良・HPC・神戸・カミ・向日市のデータ</p>
+      <p id="lastUpdated" class="updated">データ読み込み中…</p>
+    </header>
+
+    <section class="panel controls">
+      <div class="section-title-row">
+        <div>
+          <h2>検索条件</h2>
+          <p class="hint">最大6人まで比較できます。</p>
+        </div>
+        <button id="resetButton" class="button secondary" type="button">初期値に戻す</button>
+      </div>
+
+      <div id="memberList" class="member-list"></div>
+      <button id="addMemberButton" class="button add-member" type="button">＋ 会員を追加</button>
+
+      <div class="year-grid">
+        <label>開始年<input id="startYear" type="number" min="2000" max="2040" value="2019"></label>
+        <label>終了年<input id="endYear" type="number" min="2000" max="2040" value="2024"></label>
+      </div>
+
+      <button id="searchButton" class="button primary" type="button">グラフ・表を表示</button>
+      <p id="status" class="status" role="status"></p>
+    </section>
+
+    <section id="results" class="results hidden">
+      <section class="panel">
+        <div class="section-title-row">
+          <div>
+            <h2>レイティング 推移</h2>
+            <p class="hint">線や凡例をタップすると比較対象を確認できます。</p>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="ratingChart"></canvas></div>
+      </section>
+
+      <section class="panel">
+        <h2>レイティング 年平均比較表</h2>
+        <div id="averageTable" class="table-wrap"></div>
+      </section>
+
+      <section class="panel">
+        <h2>分析データ</h2>
+        <div id="statsTable" class="table-wrap"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title-row">
+          <div>
+            <h2>個人データ</h2>
+            <p class="hint">詳細データは横スクロールできます。</p>
+          </div>
+        </div>
+        <div id="detailTables"></div>
+      </section>
+    </section>
+
+    <footer>
+      <p>GitHub Pages版 · データはこのサイトに配置したCSVをブラウザ上で読み込みます。</p>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
