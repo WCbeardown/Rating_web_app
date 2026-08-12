@@ -50,3 +50,19 @@ th{background:#f1f5f9;font-weight:700}
 }
 
 .example-image{margin-top:14px;text-align:center}.example-image img{display:block;max-width:100%;width:min(720px,100%);height:auto;margin:0 auto;border-radius:10px;border:1px solid #e5e7eb}
+
+/* Main menu: keep 2 x 2 layout on smartphones */
+@media(max-width:600px){
+  .home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .home-card{min-height:170px;padding:12px}
+  .home-card h2{font-size:16px;line-height:1.35}
+  .home-card p{font-size:12px}
+  .home-card .btn{min-height:58px;padding:8px;font-size:13px}
+}
+
+.league-example{display:block;width:min(100%,420px);height:auto;margin:8px auto 14px;border-radius:10px;border:1px solid #e5e7eb}
+#inputText{min-height:95px;height:95px}
+@media(max-width:600px){
+  .league-example{width:100%;max-width:360px}
+  #inputText{min-height:82px;height:82px;font-size:13px}
+}
