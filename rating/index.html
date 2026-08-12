@@ -1,1 +1,27 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>レイティング比較</title><link rel="stylesheet" href="style.css"></head><body><main class="container"><header class="site-header"><a class="back" href="../">← ホームへ戻る</a><p class="eyebrow">RATING GRAPH</p><h1>レイティング比較</h1><p>羽曳野・若葉・奈良・HPC・神戸・カミ・向日市のデータ</p><p id="lastUpdated" class="updated">データ読み込み中…</p></header><section class="panel controls"><div class="section-title-row"><div><h2>検索条件</h2><p class="hint">最初は2人。最大6人まで追加できます。</p></div><button id="resetButton" class="button secondary" type="button">初期値に戻す</button></div><div id="memberList" class="member-list"></div><button id="addMemberButton" class="button add-member" type="button">＋ 会員を追加</button><div class="year-grid"><label>開始年<input id="startYear" type="number" min="2000" max="2040" value="2019"></label><label>終了年<input id="endYear" type="number" min="2000" max="2040" value="2026"></label></div><button id="searchButton" class="button primary full" type="button">グラフ・表を表示</button><p id="status" class="status" role="status"></p></section><section id="results" class="hidden"><section class="panel"><h2>レイティング 推移</h2><p class="hint">各年の縦線を表示。スマホでは年表示を2年おきにしています。</p><div class="chart-wrap"><canvas id="ratingChart"></canvas></div></section><section class="panel"><h2>レイティング 年平均比較表</h2><div id="averageTable" class="table-wrap"></div></section><section class="panel"><h2>分析データ</h2><div id="statsTable" class="table-wrap"></div></section><section class="panel"><h2>個人データ</h2><div id="detailTables"></div></section></section><footer class="footer"><a href="../">ホームへ戻る</a></footer></main><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script><script src="rating_app.js"></script></body></html>
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>レイティング比較</title><link rel="stylesheet" href="../style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head><body><main class="container">
+<a href="../index.html" class="small">← トップへ戻る</a>
+<header class="header"><h1>レイティング比較</h1><p>最初は2名です。必要に応じて「会員を追加」で最大6名まで追加できます。</p><p id="lastUpdated" class="small">最終更新日：読み込み中</p></header>
+<section class="card">
+<h2>条件</h2><div id="memberList"></div>
+<button id="addMemberButton" class="btn light" type="button">＋ 会員を追加</button>
+<div class="grid" style="margin-top:14px">
+<div><label for="startYear">開始年</label><input id="startYear" type="number" min="2000" max="2040" value="2019"></div>
+<div><label for="endYear">終了年</label><input id="endYear" type="number" min="2000" max="2040" value="2026"></div>
+</div>
+<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+<button id="searchButton" class="btn" type="button">グラフ・表を表示</button>
+<button id="resetButton" class="btn secondary" type="button">リセット</button>
+</div>
+<div id="status" class="status small">データ読み込み中…</div>
+</section>
+<section id="results" class="hidden">
+<div class="card"><h2>レイティング比較グラフ</h2><div class="chart-wrap"><canvas id="ratingChart"></canvas></div></div>
+<div class="card"><h2>レイティング 年平均比較表</h2><div id="averageTable" class="table-wrap"></div></div>
+<div class="card"><h2>分析データ</h2><div id="statsTable" class="table-wrap"></div></div>
+<div class="card"><h2>個人データ</h2><div id="detailTables"></div></div>
+</section>
+</main><script src="app.js"></script></body></html>

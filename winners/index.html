@@ -1,1 +1,14 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>入賞者検索</title><link rel="stylesheet" href="style.css"></head><body><main class="container"><header class="site-header"><a class="back" href="../">← ホームへ戻る</a><p class="eyebrow">WINNER SEARCH</p><h1>入賞者検索</h1><p>羽曳野レイティングのみ・54回（2015年）以降</p><p id="lastUpdated" class="updated"></p></header><section class="panel"><h2>検索条件</h2><div class="search-box"><label>苗字<input id="family" type="text" autocomplete="off"></label><label>名前<input id="given" type="text" autocomplete="off"></label><label>チーム名<input id="team" type="text" autocomplete="off"></label><button id="search" class="button primary full">検索</button></div><p id="status" class="status"></p></section><section id="results" class="hidden"><section class="panel"><div id="count" class="result-count"></div><div id="summary" class="table-wrap"></div></section><section class="panel"><h2>詳細表示</h2><div id="detail" class="table-wrap"></div></section></section><footer class="footer"><a href="../">ホームへ戻る</a></footer></main><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>入賞者検索</title><link rel="stylesheet" href="../style.css"></head><body><main class="container">
+<a href="../index.html" class="small">← トップへ戻る</a><header class="header"><h1>レイティング 入賞者検索</h1>
+<p>注意）羽曳野レイティングのみ。54回（2015年）以降のデータです。</p><p id="lastUpdated" class="small"></p></header>
+<section class="card"><div class="grid">
+<div><label>苗字入力</label><input id="surname"></div>
+<div><label>名前入力</label><input id="given"></div>
+<div><label>チーム名入力</label><input id="team"></div>
+</div><div style="margin-top:14px"><button id="search" class="btn">検索</button></div><div id="status" class="status"></div></section>
+<section id="results" class="hidden"><div class="card"><h2>総表彰回数</h2><div id="total"></div></div>
+<div class="card"><h2>クラス・部・順位別集計</h2><div id="summary" class="table-wrap"></div></div>
+<div class="card"><h2>詳細表示</h2><div id="detail" class="table-wrap"></div></div></section>
+</main><script src="app.js"></script></body></html>

@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",()=>{window.location.replace("https://ratingzougen-xtdz7rymsbfvnaufbbbdzl.streamlit.app/")});
