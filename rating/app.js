@@ -1,7 +1,7 @@
 const DEFAULT_MEMBER = 1802222;
 const MIN_MEMBER = 50000;
 const MAX_MEMBER = 3000000;
-const DEFAULT_START_YEAR = 2019;
+const DEFAULT_START_YEAR = 2019; // 初期値はCSV読み込み後に「終了年 - 6年」で設定
 
 let allData = [];
 let memberCount = 2;
@@ -51,8 +51,8 @@ document.addEventListener("DOMContentLoaded", () => {
   resetButton.addEventListener("click", () => {
     memberCount = 2;
     buildMemberInputs(2);
-    startYearInput.value = DEFAULT_START_YEAR;
     endYearInput.value = getLatestYear();
+    startYearInput.value = Math.max(2000, getLatestYear() - 6);
     renderApp(false);
   });
 
@@ -110,6 +110,7 @@ async function loadData() {
 
     if (endYearInput) {
       endYearInput.value = latest.getFullYear();
+      startYearInput.value = Math.max(2000, latest.getFullYear() - 6);
     }
 
     setStatus(
@@ -180,9 +181,9 @@ function renderChart(selected, startYear, endYear) {
       .map(row => ({ x: row.date.getTime(), y: row.rating })),
     borderColor: palette[index],
     backgroundColor: palette[index],
-    pointRadius: 3,
-    pointHoverRadius: 6,
-    borderWidth: 2,
+    pointRadius: 1.5,
+    pointHoverRadius: 4,
+    borderWidth: 1,
     tension: 0.05,
     spanGaps: false
   })).filter(dataset => dataset.data.length > 0);
