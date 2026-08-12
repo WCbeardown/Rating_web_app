@@ -28,37 +28,28 @@ document.addEventListener("DOMContentLoaded", () => {
 // 最新日取得
 // --------------------------------------------------
 
-async function loadRatingData() {
+async function loadRatingData(){
   try {
-    const r = await fetch("../data/rating_data_all.csv", {
-      cache: "no-store"
-    });
-
-    if (!r.ok) {
-      throw Error(`HTTP ${r.status}`);
-    }
-
+    const r = await fetch("../data/rating_data_all.csv", {cache: "no-store"});
+    if (!r.ok) throw Error(`HTTP ${r.status}`);
     const t = await r.text();
     const rows = parseCSV(t);
-
+    
+    // isNaN(x.getTime()) または !isNaN(x) で厳密に有効な日付判定を行う
     const dates = rows
       .map(x => new Date(String(x["日付"] || "").replaceAll("/", "-")))
-      .filter(x => !isNaN(x));
+      .filter(x => !isNaN(x.getTime())); // ★ここを修正（x.getTime() が NaN でないか確認）
 
     if (dates.length) {
-      dates.sort((a, b) => a - b);
-
-      $("lastUpdated").textContent =
-        "最終更新日：" +
-        dates.at(-1).toISOString().slice(0, 10);
+      $("lastUpdated").textContent = "最終更新日：" + dates.sort((a, b) => a - b).at(-1).toISOString().slice(0, 10);
+    } else {
+      $("lastUpdated").textContent = "最終更新日：日付データなし";
     }
-
   } catch (e) {
-    $("lastUpdated").textContent =
-      "最終更新日：取得できません";
+    console.error(e); // ブラウザのコンソールでエラーを確認できるようにログ出力
+    $("lastUpdated").textContent = "最終更新日：取得できません";
   }
 }
-
 
 // --------------------------------------------------
 // 会員番号解析
