@@ -262,79 +262,43 @@ function renderOpponents() {
 // 勝敗予測の結果推定
 // --------------------------------------------------
 
-function calculate() {
+function calculate(){
+  const t = Number($("target").value);
 
-  const t =
-    Number($("target").value);
+  // 1. 数値のレイティングの中から最小値を算出（「初」の置き換え用）
+  const validRatings = members.map(m => Number(m.rating)).filter(n => !isNaN(n));
+  const minRating = validRatings.length ? Math.min(...validRatings) : 0;
 
-  const base =
-    Number(members[t].rating);
+  // 2. 「初」の場合は最小値(minRating)を返すヘルパー関数
+  const getRating = (m) => (m.rating === "初" || isNaN(Number(m.rating))) ? minRating : Number(m.rating);
 
-  const selections =
-    [
-      ...document.querySelectorAll(
-        ".opp-result:checked"
-      )
-    ];
-
+  const base = getRating(members[t]);
+  const checked = [...document.querySelectorAll(".opp:checked")].map(x => Number(x.value));
   let total = 0;
-
   const rows = [];
 
+  for (const i of checked) {
+    const r = getRating(members[i]);
+    const diff = Math.abs(base - r);
+    const rec = POINTS.find(x => diff <= x[0]) || POINTS.at(-1);
 
-  for (const input of selections) {
-
-    const [idxText, result] =
-      input.value.split(":");
-
-    const i =
-      Number(idxText);
-
-    const r =
-      Number(members[i].rating);
-
-    const diff =
-      Math.abs(base - r);
-
-    const rec =
-      POINTS.find(
-        x => diff <= x[0]
-      ) || POINTS.at(-1);
-
-
-    // 勝ちなら増加
-    // 負けなら減少
-    const change =
-      result === "win"
-        ? rec[1]
-        : -rec[2];
-
-
-    total += change;
-
+    // 3. 自分が格下（base < r）かどうかで増減ポイントを切り替え
+    const isLower = base < r;
+    const winPt = isLower ? rec[2] : rec[1];
+    const losePt = isLower ? rec[1] : rec[2];
 
     rows.push({
-
-      相手:
-        members[i].name,
-
-      相手レイティング:
-        r,
-
-      差:
-        diff,
-
-      勝敗:
-        result === "win"
-          ? "勝"
-          : "負",
-
-      増減:
-        (change >= 0 ? "+" : "") +
-        change
+      相手: members[i].name,
+      相手レイティング: members[i].rating, // 表の表示上は元の表記（「初」など）を維持
+      差: diff,
+      勝ち: "+" + winPt,
+      負け: "-" + losePt
     });
+    total += winPt;
   }
 
+  $("calcResult").innerHTML = `<p>基準選手：${esc(members[t].name)} / 現在 ${members[t].rating}</p>${table(rows,["相手","相手レイティング","差","勝ち","負け"])}<p><strong>勝った場合の増加合計：+${total}</strong></p>`;
+}
 
   // 現在レイティング
   // ＋今回の予測増減
