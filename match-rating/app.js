@@ -264,98 +264,74 @@ function renderOpponents() {
 
 function calculate() {
 
-  const t =
-    Number($("target").value);
+  // 1. 数値レイティングの中から最小値を算出（「初」の置き換え用）
+  const validRatings = members
+    .map(m => Number(m.rating))
+    .filter(n => !isNaN(n));
 
-  const base =
-    Number(members[t].rating);
+  const minRating = validRatings.length ? Math.min(...validRatings) : 0;
 
-  const selections =
-    [
-      ...document.querySelectorAll(
-        ".opp-result:checked"
-      )
-    ];
+  // 2. 「初」または数値以外の場合は最小値(minRating)を返すヘルパー関数
+  const getRating = (m) =>
+    m.rating === "初" || isNaN(Number(m.rating))
+      ? minRating
+      : Number(m.rating);
+
+  const t = Number($("target").value);
+  const base = getRating(members[t]); // 基準選手の数値レイティング
+
+  const selections = [
+    ...document.querySelectorAll(".opp-result:checked")
+  ];
 
   let total = 0;
-
   const rows = [];
-
 
   for (const input of selections) {
 
-    const [idxText, result] =
-      input.value.split(":");
+    const [idxText, result] = input.value.split(":");
+    const i = Number(idxText);
+    const r = getRating(members[i]); // 相手選手の数値レイティング
 
-    const i =
-      Number(idxText);
-
-    const r =
-      Number(members[i].rating);
-
-    const diff =
-      Math.abs(base - r);
+    const diff = Math.abs(base - r);
 
     const rec =
-      POINTS.find(
-        x => diff <= x[0]
-      ) || POINTS.at(-1);
+      POINTS.find(x => diff <= x[0]) || POINTS.at(-1);
 
+    // 3. 自分が格下（base < r）かどうかで獲得・減小ポイントを切り替え
+    const isLower = base < r;
 
-    // 勝ちなら増加
-    // 負けなら減少
-    const change =
-      result === "win"
-        ? rec[1]
-        : -rec[2];
-
+    let change = 0;
+    if (result === "win") {
+      // 勝った場合：自分が格下なら大きい点数(rec[2])、格上なら小さい点数(rec[1])
+      change = isLower ? rec[2] : rec[1];
+    } else {
+      // 負けた場合：自分が格下なら小さい点数(rec[1])、格上なら大きい点数(rec[2])
+      change = -(isLower ? rec[1] : rec[2]);
+    }
 
     total += change;
 
-
     rows.push({
-
-      相手:
-        members[i].name,
-
-      相手レイティング:
-        r,
-
-      差:
-        diff,
-
-      勝敗:
-        result === "win"
-          ? "勝"
-          : "負",
-
-      増減:
-        (change >= 0 ? "+" : "") +
-        change
+      相手: members[i].name,
+      相手レイティング: members[i].rating, // 表表示は元の「初」などの表記を保持
+      差: diff,
+      勝敗: result === "win" ? "勝" : "負",
+      増減: (change >= 0 ? "+" : "") + change
     });
   }
 
-
-  // 現在レイティング
-  // ＋今回の予測増減
-  const estimated =
-    base + total;
-
-
-  const totalText =
-    (total >= 0 ? "+" : "") +
-    total;
-
+  // 現在レイティング ＋ 今回の予測増減
+  const estimated = base + total;
+  const totalText = (total >= 0 ? "+" : "") + total;
 
   $("calcResult").innerHTML = `
-
     <p>
       基準選手：
       ${esc(members[t].name)}
       /
-      現在 ${base}
+      現在 ${members[t].rating}
     </p>
-
 
     ${
       rows.length
@@ -377,7 +353,6 @@ function calculate() {
         `
     }
 
-
     <div
       class="card"
       style="
@@ -385,7 +360,6 @@ function calculate() {
         text-align:center;
       "
     >
-
       <h3>
         勝敗予測の結果推定
       </h3>
@@ -396,20 +370,15 @@ function calculate() {
           margin:8px 0;
         "
       >
-
         <strong>
           増減：${totalText}
           ・
           結果：${estimated}
         </strong>
-
       </p>
-
     </div>
   `;
 }
-
-
 // --------------------------------------------------
 // 表作成
 // --------------------------------------------------
