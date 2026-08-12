@@ -2,7 +2,16 @@
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>自分のリーグ分析</title><link rel="stylesheet" href="../style.css"></head><body><main class="container">
 <a href="../index.html" class="small">← トップへ戻る</a><header class="header"><h1>自分のリーグ分析</h1><p id="lastUpdated" class="small">最終更新日：読み込み中</p></header>
-<section class="card"><h2>使い方</h2><p>自分のリーグの参加者リストだけの写真を用意して、Google レンズで文字認識して、コピーしたものを下の欄に貼り付けてください</p><textarea id="inputText" placeholder="会員番号&#10;氏名&#10;レイティング&#10;..."></textarea><button id="confirm" class="btn" style="margin-top:10px">ペースト完了</button><div id="status" class="status"></div><div class="example-image"><img src="league-list-example.jpeg" alt="参加者リストの写真の例"></div></section>
+<section class="card"><h2>使い方</h2>
+<img class="league-example" src="league-list-example.jpeg" alt="参加者リストの例">
+<p>自分のリーグだけの組み合わせ写真を用意してください。Googleレンズでテキスト読み込みした文字列を下の欄に貼り付けてください。</p>
+</section>
+<section class="card">
+<h2>参加者リスト</h2>
+<textarea id="inputText" placeholder="ここにペーストして、下の「ペースト完了」を押してください。"></textarea>
+<button id="confirm" class="btn" style="margin-top:10px">ペースト完了</button>
+<div id="status" class="status"></div>
+</section>
 <section id="membersCard" class="card hidden"><h2>現在のレイティング一覧</h2><div id="members"></div></section>
 <section id="calcCard" class="card hidden"><h2>基準選手を選択</h2><select id="target"></select><div id="opponents" style="margin-top:14px"></div><button id="calc" class="btn" style="margin-top:14px">勝敗を計算</button><div id="calcResult" style="margin-top:14px"></div></section>
 </main><script src="app.js"></script></body></html>
