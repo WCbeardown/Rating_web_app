@@ -79,7 +79,6 @@ async function loadRatingData() {
       parseCSV(text);
 
 
-    // 日付をDate型にしておく
     ratingHistory =
       ratingHistory
         .map(row => {
@@ -131,7 +130,6 @@ async function loadRatingData() {
         );
 
 
-    // 日付順
     ratingHistory.sort(
       (a, b) =>
         a._date - b._date
@@ -457,7 +455,6 @@ function confirmText() {
 
   // ==========================================================
   // 「初」の仮レイティング
-  // 参加者の最低レイティング
   // ==========================================================
 
   const numericRatings =
@@ -536,6 +533,37 @@ function confirmText() {
             "
           >
 
+            <div
+              style="
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                gap:8px;
+                flex-wrap:wrap;
+                margin-bottom:10px;
+              "
+            >
+
+              <label>
+                開始年
+                <select
+                  id="graphStartYear"
+                  class="year-select"
+                ></select>
+              </label>
+
+
+              <label>
+                終了年
+                <select
+                  id="graphEndYear"
+                  class="year-select"
+                ></select>
+              </label>
+
+            </div>
+
+
             <button
               id="showGraph"
               class="btn"
@@ -544,6 +572,7 @@ function confirmText() {
             </button>
 
           </div>
+
 
           <div
             id="leagueGraph"
@@ -559,6 +588,13 @@ function confirmText() {
           "<p>参加者を抽出できませんでした。</p>";
 
   }
+
+
+  // ==========================================================
+  // グラフ年選択
+  // ==========================================================
+
+  setupGraphYears();
 
 
   // ==========================================================
@@ -611,9 +647,164 @@ function confirmText() {
 
 
 // ============================================================
+// グラフ年選択欄を作る
+// ============================================================
+
+function setupGraphYears() {
+
+  const startSelect =
+    $("graphStartYear");
+
+
+  const endSelect =
+    $("graphEndYear");
+
+
+  if (
+    !startSelect ||
+    !endSelect
+  ) {
+    return;
+  }
+
+
+  const currentYear =
+    new Date()
+      .getFullYear();
+
+
+  // データにある最初の年
+  let dataFirstYear =
+    currentYear - 10;
+
+
+  if (ratingHistory.length) {
+
+    dataFirstYear =
+      Math.min(
+        ...ratingHistory.map(
+          r =>
+            r._date.getFullYear()
+        )
+      );
+
+  }
+
+
+  // 選択可能年
+  const firstYear =
+    Math.min(
+      2000,
+      dataFirstYear
+    );
+
+
+  const lastYear =
+    Math.max(
+      2040,
+      currentYear
+    );
+
+
+  startSelect.innerHTML = "";
+
+  endSelect.innerHTML = "";
+
+
+  for (
+    let year = firstYear;
+    year <= lastYear;
+    year++
+  ) {
+
+    startSelect.innerHTML +=
+      `<option value="${year}">
+        ${year}
+      </option>`;
+
+
+    endSelect.innerHTML +=
+      `<option value="${year}">
+        ${year}
+      </option>`;
+
+  }
+
+
+  // ==========================================================
+  // デフォルト
+  // 開始年：今年 - 5
+  // 終了年：今年
+  // ==========================================================
+
+  const defaultStart =
+    Math.max(
+      firstYear,
+      currentYear - 5
+    );
+
+
+  startSelect.value =
+    String(
+      defaultStart
+    );
+
+
+  endSelect.value =
+    String(
+      currentYear
+    );
+
+
+  // ==========================================================
+  // 開始年 > 終了年にならないようにする
+  // ==========================================================
+
+  startSelect.onchange =
+    () => {
+
+      if (
+        Number(
+          startSelect.value
+        ) >
+        Number(
+          endSelect.value
+        )
+      ) {
+
+        endSelect.value =
+          startSelect.value;
+
+      }
+
+    };
+
+
+  endSelect.onchange =
+    () => {
+
+      if (
+        Number(
+          endSelect.value
+        ) <
+        Number(
+          startSelect.value
+        )
+      ) {
+
+        startSelect.value =
+          endSelect.value;
+
+      }
+
+    };
+
+}
+
+
+// ============================================================
 // ============================================================
 // レイティング推移グラフ
-// 最大7名
 // ============================================================
 // ============================================================
 
@@ -628,7 +819,6 @@ function renderLeagueGraph() {
   }
 
 
-  // 最大7名
   const list =
     members.slice(0, 7);
 
@@ -666,7 +856,69 @@ function renderLeagueGraph() {
 
 
   // ==========================================================
-  // 各選手の履歴を作る
+  // 年を取得
+  // ==========================================================
+
+  const startYear =
+    Number(
+      $("graphStartYear").value
+    );
+
+
+  const endYear =
+    Number(
+      $("graphEndYear").value
+    );
+
+
+  if (
+    !Number.isFinite(startYear) ||
+    !Number.isFinite(endYear)
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    startYear > endYear
+  ) {
+
+    alert(
+      "開始年は終了年以前にしてください。"
+    );
+
+    return;
+
+  }
+
+
+  // ==========================================================
+  // グラフの期間
+  // ==========================================================
+
+  const graphStart =
+    new Date(
+      startYear,
+      0,
+      1
+    );
+
+
+  const graphEnd =
+    new Date(
+      endYear,
+      11,
+      31,
+      23,
+      59,
+      59
+    );
+
+
+  // ==========================================================
+  // 各選手の履歴
   // ==========================================================
 
   const series =
@@ -680,7 +932,13 @@ function renderLeagueGraph() {
             .filter(
               row =>
                 row._memberId ===
-                Number(member.id)
+                Number(member.id) &&
+
+                row._date >=
+                graphStart &&
+
+                row._date <=
+                graphEnd
             )
 
             .map(
@@ -721,10 +979,6 @@ function renderLeagueGraph() {
     );
 
 
-  // ==========================================================
-  // データがある選手だけ表示
-  // ==========================================================
-
   const validSeries =
     series.filter(
       s =>
@@ -740,7 +994,8 @@ function renderLeagueGraph() {
 
         <p style="text-align:center">
 
-          この参加者のレイティング履歴が
+          ${startYear}年～${endYear}年の
+          レイティング履歴が
           見つかりませんでした。
 
         </p>
@@ -755,114 +1010,7 @@ function renderLeagueGraph() {
 
 
   // ==========================================================
-  // 「初」の選手
-  // ==========================================================
-
-  const numericCurrentRatings =
-    list
-
-      .map(
-        m =>
-          Number(m.rating)
-      )
-
-      .filter(
-        n =>
-          Number.isFinite(n)
-      );
-
-
-  const minCurrentRating =
-    numericCurrentRatings.length
-
-      ? Math.min(
-          ...numericCurrentRatings
-        )
-
-      : 0;
-
-
-  // ==========================================================
-  // グラフ全体の日付範囲
-  // ==========================================================
-
-  let minDate =
-    null;
-
-  let maxDate =
-    null;
-
-
-  validSeries.forEach(
-    s => {
-
-      s.data.forEach(
-        point => {
-
-          if (
-            !minDate ||
-            point.date < minDate
-          ) {
-
-            minDate =
-              point.date;
-
-          }
-
-
-          if (
-            !maxDate ||
-            point.date > maxDate
-          ) {
-
-            maxDate =
-              point.date;
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  if (!minDate || !maxDate) {
-    return;
-  }
-
-
-  // ==========================================================
-  // 年単位にする
-  // ==========================================================
-
-  const minYear =
-    minDate.getFullYear();
-
-
-  const maxYear =
-    maxDate.getFullYear();
-
-
-  // グラフは年初～年末
-  const graphStart =
-    new Date(
-      minYear,
-      0,
-      1
-    );
-
-
-  const graphEnd =
-    new Date(
-      maxYear,
-      11,
-      31
-    );
-
-
-  // ==========================================================
-  // 全データからY軸範囲
+  // 全レイティング
   // ==========================================================
 
   const allRatings = [];
@@ -919,8 +1067,13 @@ function renderLeagueGraph() {
     ) * 50;
 
 
-  if (yMax <= yMin) {
-    yMax = yMin + 100;
+  if (
+    yMax <= yMin
+  ) {
+
+    yMax =
+      yMin + 100;
+
   }
 
 
@@ -965,7 +1118,7 @@ function renderLeagueGraph() {
 
 
   // ==========================================================
-  // 座標変換
+  // X座標
   // ==========================================================
 
   const timeToX =
@@ -995,6 +1148,10 @@ function renderLeagueGraph() {
 
     };
 
+
+  // ==========================================================
+  // Y座標
+  // ==========================================================
 
   const ratingToY =
     rating => {
@@ -1030,8 +1187,8 @@ function renderLeagueGraph() {
 
 
   for (
-    let year = minYear;
-    year <= maxYear;
+    let year = startYear;
+    year <= endYear;
     year++
   ) {
 
@@ -1079,18 +1236,14 @@ function renderLeagueGraph() {
 
   // ==========================================================
   // 年の文字
-  //
-  // スマホでは2年おき程度
-  // PCでは毎年
-  // CSSのメディアクエリで切り替える
   // ==========================================================
 
   let yearLabels = "";
 
 
   for (
-    let year = minYear;
-    year <= maxYear;
+    let year = startYear;
+    year <= endYear;
     year++
   ) {
 
@@ -1138,13 +1291,14 @@ function renderLeagueGraph() {
 
 
   // ==========================================================
-  // Y軸の横線
+  // Y軸横線
   // ==========================================================
 
   let yGrid = "";
 
 
-  const yStep = 50;
+  const yStep =
+    50;
 
 
   for (
@@ -1210,30 +1364,24 @@ function renderLeagueGraph() {
 
 
   // ==========================================================
-  // 線の色
+  // 色
   // ==========================================================
 
   const lineColors = [
 
     "#e53935",
-
     "#43a047",
-
     "#1e88e5",
-
     "#00acc1",
-
     "#8e24aa",
-
     "#fb8c00",
-
     "#6d4c41"
 
   ];
 
 
   // ==========================================================
-  // 各選手の折れ線
+  // 線
   // ==========================================================
 
   let lines = "";
@@ -1361,7 +1509,6 @@ function renderLeagueGraph() {
 
           ></span>
 
-
           ${esc(s.name)}
 
         </span>
@@ -1373,10 +1520,7 @@ function renderLeagueGraph() {
 
 
   // ==========================================================
-  // スマホ用CSS
-  //
-  // 毎年の縦線は必ず表示
-  // 年文字はスマホでは2年おき
+  // スマホ用
   // ==========================================================
 
   const mobileYearCSS = `
@@ -1402,6 +1546,13 @@ function renderLeagueGraph() {
         }
 
 
+        /*
+         * スマホでは
+         * 2年おき程度に年を表示
+         *
+         * 縦線自体は消さない
+         */
+
         #leagueGraph
         .graph-year:nth-of-type(2n) {
 
@@ -1410,7 +1561,6 @@ function renderLeagueGraph() {
         }
 
       }
-
 
     </style>
 
@@ -1431,13 +1581,27 @@ function renderLeagueGraph() {
       <h3
         style="
           text-align:center;
-          margin-bottom:8px;
+          margin-bottom:4px;
         "
       >
 
         レイティング推移
 
       </h3>
+
+
+      <p
+        style="
+          text-align:center;
+          font-size:13px;
+          color:#666;
+          margin:0 0 8px;
+        "
+      >
+
+        ${startYear}年 ～ ${endYear}年
+
+      </p>
 
 
       <div
@@ -1474,7 +1638,9 @@ function renderLeagueGraph() {
 
           height="${height}"
 
-          preserveAspectRatio="xMinYMin meet"
+          preserveAspectRatio="
+            xMinYMin meet
+          "
 
           role="img"
 
@@ -1485,22 +1651,11 @@ function renderLeagueGraph() {
 
         >
 
-          <!-- 毎年の縦線 -->
-
           ${yearLines}
-
-
-          <!-- Y軸の横線 -->
 
           ${yGrid}
 
-
-          <!-- レイティング推移 -->
-
           ${lines}
-
-
-          <!-- 年 -->
 
           ${yearLabels}
 
@@ -1535,8 +1690,13 @@ function renderLeagueGraph() {
 
 function renderOpponents() {
 
-  if (!$("target") || !$("opponents")) {
+  if (
+    !$("target") ||
+    !$("opponents")
+  ) {
+
     return;
+
   }
 
 
@@ -1569,7 +1729,7 @@ function renderOpponents() {
               class="opponent-row"
 
               style="
-                padding:8px 0;
+                padding:10px 0;
                 border-bottom:
                   1px solid #e5e7eb;
               "
@@ -1599,17 +1759,33 @@ function renderOpponents() {
               </div>
 
 
+              <!--
+                ラジオボタンを
+                元の押しやすい形に戻す
+              -->
+
               <div
+
                 style="
-                  margin-top:6px;
+                  display:flex;
+                  gap:22px;
+                  margin-top:8px;
                 "
+
               >
 
                 <label
+
                   style="
-                    display:inline-block;
-                    margin-right:18px;
+                    display:flex;
+                    align-items:center;
+                    gap:6px;
+                    min-height:36px;
+                    cursor:pointer;
+                    font-size:16px;
+                    touch-action:manipulation;
                   "
+
                 >
 
                   <input
@@ -1624,14 +1800,32 @@ function renderOpponents() {
 
                     value="${index}:win"
 
+                    style="
+                      width:20px;
+                      height:20px;
+                      margin:0;
+                    "
+
                   >
 
-                  勝
+                  <span>勝</span>
 
                 </label>
 
 
-                <label>
+                <label
+
+                  style="
+                    display:flex;
+                    align-items:center;
+                    gap:6px;
+                    min-height:36px;
+                    cursor:pointer;
+                    font-size:16px;
+                    touch-action:manipulation;
+                  "
+
+                >
 
                   <input
 
@@ -1645,9 +1839,15 @@ function renderOpponents() {
 
                     value="${index}:loss"
 
+                    style="
+                      width:20px;
+                      height:20px;
+                      margin:0;
+                    "
+
                   >
 
-                  負
+                  <span>負</span>
 
                 </label>
 
@@ -1676,10 +1876,6 @@ function calculate() {
   }
 
 
-  // ==========================================================
-  // 最低レイティング
-  // ==========================================================
-
   const numericRatings =
 
     members
@@ -1703,10 +1899,7 @@ function calculate() {
       : 0;
 
 
-  // ==========================================================
   // 「初」は最低点として計算
-  // ==========================================================
-
   const getRating =
     member => {
 
@@ -1755,13 +1948,8 @@ function calculate() {
 
   let total = 0;
 
-
   const rows = [];
 
-
-  // ==========================================================
-  // 各対戦相手
-  // ==========================================================
 
   for (
     const input of selections
@@ -1788,7 +1976,6 @@ function calculate() {
       );
 
 
-    // レイティング差
     const diff =
       Math.abs(
         base -
@@ -1796,7 +1983,6 @@ function calculate() {
       );
 
 
-    // ポイント表
     const record =
       POINTS.find(
         x =>
@@ -1805,7 +1991,6 @@ function calculate() {
       POINTS.at(-1);
 
 
-    // 自分が格下か
     const isLower =
       base <
       opponentRating;
@@ -1814,37 +1999,23 @@ function calculate() {
     let change;
 
 
-    // --------------------------------------------------------
-    // 勝ち
-    // --------------------------------------------------------
-
     if (
       result === "win"
     ) {
 
       change =
         isLower
-
           ? record[2]
-
           : record[1];
 
     }
 
-
-    // --------------------------------------------------------
-    // 負け
-    // --------------------------------------------------------
-
     else {
 
       change =
-
         -(
           isLower
-
             ? record[1]
-
             : record[2]
         );
 
@@ -1874,9 +2045,7 @@ function calculate() {
       勝敗:
 
         result === "win"
-
           ? "勝"
-
           : "負",
 
       増減:
@@ -1893,10 +2062,6 @@ function calculate() {
   }
 
 
-  // ==========================================================
-  // 最終レイティング
-  // ==========================================================
-
   const estimated =
     base +
     total;
@@ -1910,10 +2075,6 @@ function calculate() {
     ) +
     total;
 
-
-  // ==========================================================
-  // 表示
-  // ==========================================================
 
   if (!$("calcResult")) {
     return;
