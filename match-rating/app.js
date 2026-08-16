@@ -1,8 +1,18 @@
+// ============================================================
+// 自分のリーグ分析
+// match-rating/app.js
+// ============================================================
+
 let members = [];
+let ratingHistory = [];
 
 const $ = id => document.getElementById(id);
 
-// レイティング差 → 勝ち増加 / 負け減少
+
+// ============================================================
+// レイティング増減表
+// ============================================================
+
 const POINTS = [
   [12, 8, 8],
   [37, 7, 10],
@@ -17,170 +27,512 @@ const POINTS = [
   [99999, 0, 50]
 ];
 
+
+// ============================================================
+// 初期処理
+// ============================================================
+
 document.addEventListener("DOMContentLoaded", () => {
-  $("confirm").onclick = confirmText;
-  $("calc").onclick = calculate;
+
+  if ($("confirm")) {
+    $("confirm").onclick = confirmText;
+  }
+
+  if ($("calc")) {
+    $("calc").onclick = calculate;
+  }
+
   loadRatingData();
+
 });
 
 
-// --------------------------------------------------
-// 最新日取得
-// --------------------------------------------------
+// ============================================================
+// CSV読み込み
+// ============================================================
 
 async function loadRatingData() {
-  try {
-    const r = await fetch("../data/rating_data_all.csv", {
-      cache: "no-store"
-    });
 
-    if (!r.ok) {
-      throw Error(`HTTP ${r.status}`);
+  try {
+
+    const response =
+      await fetch(
+        "../data/rating_data_all.csv",
+        {
+          cache: "no-store"
+        }
+      );
+
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP ${response.status}`
+      );
     }
 
-    const t = await r.text();
-    const rows = parseCSV(t);
 
-    const dates = rows
-      .map(x => new Date(String(x["日付"] || "").replaceAll("/", "-")))
-      .filter(x => !isNaN(x));
+    const text =
+      await response.text();
 
-    if (dates.length) {
-      dates.sort((a, b) => a - b);
+
+    ratingHistory =
+      parseCSV(text);
+
+
+    // 日付をDate型にしておく
+    ratingHistory =
+      ratingHistory
+        .map(row => {
+
+          const date =
+            parseDate(
+              row["日付"]
+            );
+
+          const memberId =
+            Number(
+              String(
+                row["会員番号"] || ""
+              ).replace(
+                /\D/g,
+                ""
+              )
+            );
+
+          const rating =
+            Number(
+              String(
+                row["レイティング"] || ""
+              ).replace(
+                /,/g,
+                ""
+              )
+            );
+
+
+          return {
+            ...row,
+            _date: date,
+            _memberId: memberId,
+            _rating: rating
+          };
+
+        })
+
+        .filter(
+          row =>
+            row._date &&
+            Number.isFinite(
+              row._memberId
+            ) &&
+            Number.isFinite(
+              row._rating
+            )
+        );
+
+
+    // 日付順
+    ratingHistory.sort(
+      (a, b) =>
+        a._date - b._date
+    );
+
+
+    if (
+      ratingHistory.length &&
+      $("lastUpdated")
+    ) {
+
+      const last =
+        ratingHistory.at(-1)._date;
+
 
       $("lastUpdated").textContent =
         "最終更新日：" +
-        dates.at(-1).toISOString().slice(0, 10);
+        formatDate(last);
+
     }
 
-  } catch (e) {
-    $("lastUpdated").textContent =
-      "最終更新日：取得できません";
   }
+
+  catch (error) {
+
+    console.error(
+      "rating_data_all.csv読み込みエラー:",
+      error
+    );
+
+
+    if ($("lastUpdated")) {
+
+      $("lastUpdated").textContent =
+        "最終更新日：取得できません";
+
+    }
+
+  }
+
 }
 
 
-// --------------------------------------------------
+// ============================================================
+// 日付処理
+// ============================================================
+
+function parseDate(value) {
+
+  if (!value) {
+    return null;
+  }
+
+
+  const text =
+    String(value)
+      .trim()
+      .replace(
+        /[/.]/g,
+        "-"
+      );
+
+
+  const match =
+    text.match(
+      /^(\d{4})-(\d{1,2})-(\d{1,2})/
+    );
+
+
+  if (!match) {
+    return null;
+  }
+
+
+  const year =
+    Number(match[1]);
+
+  const month =
+    Number(match[2]);
+
+  const day =
+    Number(match[3]);
+
+
+  const date =
+    new Date(
+      year,
+      month - 1,
+      day
+    );
+
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+
+    return null;
+
+  }
+
+
+  return date;
+
+}
+
+
+function formatDate(date) {
+
+  if (!date) {
+    return "";
+  }
+
+
+  return (
+    date.getFullYear() +
+    "-" +
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0") +
+    "-" +
+    String(
+      date.getDate()
+    ).padStart(2, "0")
+  );
+
+}
+
+
+// ============================================================
 // 会員番号解析
-// --------------------------------------------------
+// ============================================================
 
-function parseCandidateNumber(s) {
+function parseCandidateNumber(value) {
 
-  s = String(s).replace(/\D/g, "");
+  let s =
+    String(value)
+      .replace(
+        /\D/g,
+        ""
+      );
+
 
   if (s.length >= 8) {
-    return Number(s.slice(-7));
+
+    return Number(
+      s.slice(-7)
+    );
+
   }
+
 
   if (
     s.length === 7 ||
-    (s.length === 6 && s.startsWith("9"))
+    (
+      s.length === 6 &&
+      s.startsWith("9")
+    )
   ) {
+
     return Number(s);
+
   }
 
+
   return null;
+
 }
 
 
-// --------------------------------------------------
+// ============================================================
 // 貼り付けデータ解析
-// --------------------------------------------------
+// ============================================================
 
 function parseText(text) {
 
-  const lines = text
-    .normalize("NFKC")
-    .split(/\r?\n/)
-    .map(x => x.trim())
-    .filter(Boolean);
+  const lines =
+    String(text)
+      .normalize("NFKC")
+      .split(/\r?\n/)
+      .map(
+        x => x.trim()
+      )
+      .filter(Boolean);
 
-  const out = [];
-  const used = new Set();
 
-  for (let i = 0; i < lines.length; i++) {
+  const result = [];
 
-    if (/^\d{6,}$/.test(lines[i])) {
+  const used =
+    new Set();
 
-      const id = parseCandidateNumber(lines[i]);
+
+  for (
+    let i = 0;
+    i < lines.length;
+    i++
+  ) {
+
+    if (
+      /^\d{6,}$/.test(
+        lines[i]
+      )
+    ) {
+
+      const id =
+        parseCandidateNumber(
+          lines[i]
+        );
+
 
       const name =
-        lines[i + 1] || "不明";
+        lines[i + 1] ||
+        "不明";
 
-      const rt =
-        /^\d+$/.test(lines[i + 2] || "")
-          ? Number(lines[i + 2])
-          : ((lines[i + 2] || "") === "初" ? "初" : null);
 
-      if (id && !used.has(id)) {
+      const ratingText =
+        lines[i + 2] || "";
 
-        out.push({
-          id,
-          name,
-          rating: rt ?? 0
-        });
 
-        used.add(id);
+      let rating;
+
+
+      if (
+        /^\d+$/.test(
+          ratingText
+        )
+      ) {
+
+        rating =
+          Number(
+            ratingText
+          );
+
       }
 
+      else if (
+        ratingText === "初"
+      ) {
+
+        rating = "初";
+
+      }
+
+      else {
+
+        rating = 0;
+
+      }
+
+
+      if (
+        id &&
+        !used.has(id)
+      ) {
+
+        result.push({
+          id,
+          name,
+          rating
+        });
+
+
+        used.add(id);
+
+      }
+
+
       i += 2;
+
     }
+
   }
 
-  return out;
+
+  return result;
+
 }
 
 
-// --------------------------------------------------
-// ペースト完了
-// --------------------------------------------------
+// ============================================================
+// 貼り付け確定
+// ============================================================
 
 function confirmText() {
 
-  members = parseText($("inputText").value);
+  members =
+    parseText(
+      $("inputText").value
+    );
 
-  $("membersCard").classList.remove("hidden");
-  $("calcCard").classList.remove("hidden");
 
-  $("status").className = "status ok";
+  // 最大7名
+  members =
+    members.slice(0, 7);
 
-  $("status").textContent =
-    `${members.length}名を抽出しました。`;
 
-  // 最大7名まで表示・計算対象とする
-  members = members.slice(0, 7);
+  if ($("membersCard")) {
+    $("membersCard")
+      .classList
+      .remove("hidden");
+  }
 
-  // 「初」の表示用仮レイティング＝参加者内の最低点
-  const numericRatings = members
-    .map(m => Number(m.rating))
-    .filter(n => Number.isFinite(n));
 
-  const minRating = numericRatings.length
-    ? Math.min(...numericRatings)
-    : 0;
+  if ($("calcCard")) {
+    $("calcCard")
+      .classList
+      .remove("hidden");
+  }
 
-  $("members").innerHTML =
-    members.length
-      ? table(
-          members.map((m, i) => ({
-            番号: i + 1,
-            会員番号: m.id,
-            氏名: m.name,
 
-            レイティング:
-              m.rating === "初"
-                ? `初(${minRating})`
-                : m.rating
-          })),
+  if ($("status")) {
 
-          ["番号", "会員番号", "氏名", "レイティング"]
+    $("status").className =
+      "status ok";
 
-        ) + `
+
+    $("status").textContent =
+      `${members.length}名を抽出しました。`;
+
+  }
+
+
+  // ==========================================================
+  // 「初」の仮レイティング
+  // 参加者の最低レイティング
+  // ==========================================================
+
+  const numericRatings =
+    members
+
+      .map(
+        m => Number(m.rating)
+      )
+
+      .filter(
+        n =>
+          Number.isFinite(n)
+      );
+
+
+  const minRating =
+    numericRatings.length
+      ? Math.min(
+          ...numericRatings
+        )
+      : 0;
+
+
+  // ==========================================================
+  // 現在のレイティング一覧
+  // ==========================================================
+
+  if ($("members")) {
+
+    $("members").innerHTML =
+
+      members.length
+
+        ? table(
+
+            members.map(
+              (m, i) => ({
+
+                番号:
+                  i + 1,
+
+                会員番号:
+                  m.id,
+
+                氏名:
+                  m.name,
+
+                レイティング:
+
+                  m.rating === "初"
+
+                    ? `初(${minRating})`
+
+                    : m.rating
+
+              })
+            ),
+
+            [
+              "番号",
+              "会員番号",
+              "氏名",
+              "レイティング"
+            ]
+
+          )
+
+          +
+
+          `
 
           <div
             style="
               text-align:center;
-              margin-top:12px;
+              margin-top:14px;
             "
           >
 
@@ -195,53 +547,90 @@ function confirmText() {
 
           <div
             id="leagueGraph"
-            style="margin-top:16px"
+            style="
+              margin-top:16px;
+            "
           ></div>
 
-        `
+          `
 
-      : "<p>参加者を抽出できませんでした。</p>";
+        :
 
+          "<p>参加者を抽出できませんでした。</p>";
 
-  // グラフ表示ボタン
-  const graphButton = $("showGraph");
-
-  if (graphButton) {
-    graphButton.onclick = renderLeagueGraph;
   }
 
 
-  $("target").innerHTML =
-    members
-      .map(
-        (m, i) =>
-          `<option value="${i}">
-            ${i + 1}. ${esc(m.name)} (${m.id})
-          </option>`
-      )
-      .join("");
+  // ==========================================================
+  // グラフボタン
+  // ==========================================================
+
+  const graphButton =
+    $("showGraph");
 
 
-  $("target").onchange = renderOpponents;
+  if (graphButton) {
+
+    graphButton.onclick =
+      renderLeagueGraph;
+
+  }
+
+
+  // ==========================================================
+  // 基準選手
+  // ==========================================================
+
+  if ($("target")) {
+
+    $("target").innerHTML =
+
+      members
+        .map(
+          (m, i) =>
+
+            `<option value="${i}">
+              ${i + 1}.
+              ${esc(m.name)}
+              (${m.id})
+            </option>`
+
+        )
+        .join("");
+
+
+    $("target").onchange =
+      renderOpponents;
+
+  }
+
 
   renderOpponents();
+
 }
 
 
-// --------------------------------------------------
-// 現在のレイティング比較グラフ
+// ============================================================
+// ============================================================
+// レイティング推移グラフ
 // 最大7名
-// --------------------------------------------------
+// ============================================================
+// ============================================================
 
 function renderLeagueGraph() {
 
-  const target = $("leagueGraph");
+  const target =
+    $("leagueGraph");
 
-  if (!target) return;
+
+  if (!target) {
+    return;
+  }
 
 
   // 最大7名
-  const list = members.slice(0, 7);
+  const list =
+    members.slice(0, 7);
 
 
   if (!list.length) {
@@ -250,269 +639,908 @@ function renderLeagueGraph() {
       "<p>表示する参加者がいません。</p>";
 
     return;
+
   }
 
 
-  // 数値レイティングだけを抽出
-  const numericRatings = list
-    .map(m => Number(m.rating))
-    .filter(n => Number.isFinite(n));
+  if (!ratingHistory.length) {
+
+    target.innerHTML = `
+
+      <div class="card">
+
+        <p style="text-align:center">
+
+          レイティング履歴を
+          読み込めませんでした。
+
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
 
 
-  // 「初」の仮レイティング
-  const minRating = numericRatings.length
-    ? Math.min(...numericRatings)
-    : 0;
+  // ==========================================================
+  // 各選手の履歴を作る
+  // ==========================================================
+
+  const series =
+    list.map(
+      member => {
+
+        const data =
+
+          ratingHistory
+
+            .filter(
+              row =>
+                row._memberId ===
+                Number(member.id)
+            )
+
+            .map(
+              row => ({
+
+                date:
+                  row._date,
+
+                rating:
+                  row._rating
+
+              })
+            )
+
+            .sort(
+              (a, b) =>
+                a.date - b.date
+            );
 
 
-  // 実際にグラフで使用するレイティング
-  const getRating = m =>
+        return {
 
-    m.rating === "初" ||
-    !Number.isFinite(Number(m.rating))
+          id:
+            member.id,
 
-      ? minRating
+          name:
+            member.name,
 
-      : Number(m.rating);
+          currentRating:
+            member.rating,
 
+          data
 
-  const values =
-    list.map(getRating);
+        };
 
+      }
 
-  const width =
-    Math.max(
-      620,
-      target.clientWidth || 620
     );
 
 
-  const height = 360;
+  // ==========================================================
+  // データがある選手だけ表示
+  // ==========================================================
+
+  const validSeries =
+    series.filter(
+      s =>
+        s.data.length > 0
+    );
 
 
-  const padding = {
-    top: 35,
-    right: 20,
-    bottom: 70,
-    left: 55
-  };
+  if (!validSeries.length) {
+
+    target.innerHTML = `
+
+      <div class="card">
+
+        <p style="text-align:center">
+
+          この参加者のレイティング履歴が
+          見つかりませんでした。
+
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
 
 
-  const chartW =
-    width -
-    padding.left -
-    padding.right;
+  // ==========================================================
+  // 「初」の選手
+  // ==========================================================
+
+  const numericCurrentRatings =
+    list
+
+      .map(
+        m =>
+          Number(m.rating)
+      )
+
+      .filter(
+        n =>
+          Number.isFinite(n)
+      );
 
 
-  const chartH =
-    height -
-    padding.top -
-    padding.bottom;
+  const minCurrentRating =
+    numericCurrentRatings.length
+
+      ? Math.min(
+          ...numericCurrentRatings
+        )
+
+      : 0;
 
 
-  const min =
-    Math.min(...values);
+  // ==========================================================
+  // グラフ全体の日付範囲
+  // ==========================================================
+
+  let minDate =
+    null;
+
+  let maxDate =
+    null;
 
 
-  const max =
-    Math.max(...values);
+  validSeries.forEach(
+    s => {
+
+      s.data.forEach(
+        point => {
+
+          if (
+            !minDate ||
+            point.date < minDate
+          ) {
+
+            minDate =
+              point.date;
+
+          }
+
+
+          if (
+            !maxDate ||
+            point.date > maxDate
+          ) {
+
+            maxDate =
+              point.date;
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+  if (!minDate || !maxDate) {
+    return;
+  }
+
+
+  // ==========================================================
+  // 年単位にする
+  // ==========================================================
+
+  const minYear =
+    minDate.getFullYear();
+
+
+  const maxYear =
+    maxDate.getFullYear();
+
+
+  // グラフは年初～年末
+  const graphStart =
+    new Date(
+      minYear,
+      0,
+      1
+    );
+
+
+  const graphEnd =
+    new Date(
+      maxYear,
+      11,
+      31
+    );
+
+
+  // ==========================================================
+  // 全データからY軸範囲
+  // ==========================================================
+
+  const allRatings = [];
+
+
+  validSeries.forEach(
+    s => {
+
+      s.data.forEach(
+        p =>
+          allRatings.push(
+            p.rating
+          )
+      );
+
+    }
+  );
+
+
+  const dataMin =
+    Math.min(
+      ...allRatings
+    );
+
+
+  const dataMax =
+    Math.max(
+      ...allRatings
+    );
 
 
   const range =
     Math.max(
       100,
-      max - min
+      dataMax - dataMin
     );
 
 
-  const yMin =
+  let yMin =
     Math.floor(
-      (min - range * 0.15) / 50
+      (
+        dataMin -
+        range * 0.10
+      ) / 50
     ) * 50;
 
 
-  const yMax =
+  let yMax =
     Math.ceil(
-      (max + range * 0.15) / 50
+      (
+        dataMax +
+        range * 0.10
+      ) / 50
     ) * 50;
 
 
-  const x = i =>
+  if (yMax <= yMin) {
+    yMax = yMin + 100;
+  }
 
-    padding.left +
 
-    (
-      list.length === 1
+  // ==========================================================
+  // SVGサイズ
+  // ==========================================================
 
-        ? chartW / 2
-
-        : chartW *
-          i /
-          (list.length - 1)
+  const width =
+    Math.max(
+      650,
+      target.clientWidth || 650
     );
 
 
-  const y = value =>
-
-    padding.top +
-    chartH -
-
-    (
-      (value - yMin) /
-      (yMax - yMin)
-    ) *
-    chartH;
+  const height =
+    430;
 
 
-  const points = list
+  const padding = {
 
-    .map(
-      (m, i) =>
-        `${x(i)},${y(getRating(m))}`
-    )
+    top: 35,
 
-    .join(" ");
+    right: 25,
 
+    bottom: 65,
 
-  // 横方向のグリッド
-  const grid =
+    left: 55
 
-    Array.from(
-      { length: 6 },
-      (_, i) => {
-
-        const value =
-          yMin +
-          (yMax - yMin) *
-          i /
-          5;
+  };
 
 
-        const yy =
-          y(value);
+  const chartWidth =
+    width -
+    padding.left -
+    padding.right;
 
 
-        return `
-
-          <line
-            x1="${padding.left}"
-            y1="${yy}"
-            x2="${width - padding.right}"
-            y2="${yy}"
-            stroke="#d1d5db"
-            stroke-width="1"
-          />
+  const chartHeight =
+    height -
+    padding.top -
+    padding.bottom;
 
 
-          <text
-            x="${padding.left - 8}"
-            y="${yy + 4}"
-            text-anchor="end"
-            font-size="12"
-            fill="#555"
-          >
-            ${Math.round(value)}
-          </text>
+  // ==========================================================
+  // 座標変換
+  // ==========================================================
 
-        `;
+  const timeToX =
+    date => {
+
+      const total =
+        graphEnd -
+        graphStart;
+
+
+      const current =
+        date -
+        graphStart;
+
+
+      return (
+
+        padding.left +
+
+        chartWidth *
+        (
+          current /
+          total
+        )
+
+      );
+
+    };
+
+
+  const ratingToY =
+    rating => {
+
+      return (
+
+        padding.top +
+
+        chartHeight -
+
+        (
+          (
+            rating -
+            yMin
+          ) /
+          (
+            yMax -
+            yMin
+          )
+        ) *
+        chartHeight
+
+      );
+
+    };
+
+
+  // ==========================================================
+  // 毎年の縦線
+  // ==========================================================
+
+  let yearLines = "";
+
+
+  for (
+    let year = minYear;
+    year <= maxYear;
+    year++
+  ) {
+
+    const date =
+      new Date(
+        year,
+        0,
+        1
+      );
+
+
+    const x =
+      timeToX(date);
+
+
+    yearLines += `
+
+      <line
+
+        x1="${x}"
+
+        y1="${padding.top}"
+
+        x2="${x}"
+
+        y2="${
+          height -
+          padding.bottom
+        }"
+
+        stroke="#999"
+
+        stroke-width="1"
+
+        stroke-dasharray="4 4"
+
+        opacity="0.65"
+
+      />
+
+    `;
+
+  }
+
+
+  // ==========================================================
+  // 年の文字
+  //
+  // スマホでは2年おき程度
+  // PCでは毎年
+  // CSSのメディアクエリで切り替える
+  // ==========================================================
+
+  let yearLabels = "";
+
+
+  for (
+    let year = minYear;
+    year <= maxYear;
+    year++
+  ) {
+
+    const date =
+      new Date(
+        year,
+        0,
+        1
+      );
+
+
+    const x =
+      timeToX(date);
+
+
+    yearLabels += `
+
+      <text
+
+        class="graph-year graph-year-${year}"
+
+        x="${x}"
+
+        y="${
+          height -
+          padding.bottom +
+          28
+        }"
+
+        text-anchor="middle"
+
+        font-size="12"
+
+        fill="#444"
+
+      >
+
+        ${year}
+
+      </text>
+
+    `;
+
+  }
+
+
+  // ==========================================================
+  // Y軸の横線
+  // ==========================================================
+
+  let yGrid = "";
+
+
+  const yStep = 50;
+
+
+  for (
+    let rating = yMin;
+    rating <= yMax;
+    rating += yStep
+  ) {
+
+    const y =
+      ratingToY(
+        rating
+      );
+
+
+    yGrid += `
+
+      <line
+
+        x1="${padding.left}"
+
+        y1="${y}"
+
+        x2="${
+          width -
+          padding.right
+        }"
+
+        y2="${y}"
+
+        stroke="#999"
+
+        stroke-width="1"
+
+        opacity="0.45"
+
+      />
+
+
+      <text
+
+        x="${
+          padding.left -
+          8
+        }"
+
+        y="${y + 4}"
+
+        text-anchor="end"
+
+        font-size="12"
+
+        fill="#555"
+
+      >
+
+        ${rating}
+
+      </text>
+
+    `;
+
+  }
+
+
+  // ==========================================================
+  // 線の色
+  // ==========================================================
+
+  const lineColors = [
+
+    "#e53935",
+
+    "#43a047",
+
+    "#1e88e5",
+
+    "#00acc1",
+
+    "#8e24aa",
+
+    "#fb8c00",
+
+    "#6d4c41"
+
+  ];
+
+
+  // ==========================================================
+  // 各選手の折れ線
+  // ==========================================================
+
+  let lines = "";
+
+
+  validSeries.forEach(
+    (s, index) => {
+
+      const color =
+        lineColors[
+          index %
+          lineColors.length
+        ];
+
+
+      const points =
+        s.data
+
+          .map(
+            p =>
+
+              `${timeToX(
+                p.date
+              )},${ratingToY(
+                p.rating
+              )}`
+
+          )
+
+          .join(" ");
+
+
+      lines += `
+
+        <polyline
+
+          points="${points}"
+
+          fill="none"
+
+          stroke="${color}"
+
+          stroke-width="2.5"
+
+          stroke-linejoin="round"
+
+          stroke-linecap="round"
+
+        />
+
+      `;
+
+
+      // データポイント
+      s.data.forEach(
+        p => {
+
+          lines += `
+
+            <circle
+
+              cx="${timeToX(
+                p.date
+              )}"
+
+              cy="${ratingToY(
+                p.rating
+              )}"
+
+              r="3"
+
+              fill="${color}"
+
+            />
+
+          `;
+
+        }
+      );
+
+    }
+  );
+
+
+  // ==========================================================
+  // 凡例
+  // ==========================================================
+
+  let legend = "";
+
+
+  validSeries.forEach(
+    (s, index) => {
+
+      const color =
+        lineColors[
+          index %
+          lineColors.length
+        ];
+
+
+      legend += `
+
+        <span
+
+          style="
+            display:inline-flex;
+            align-items:center;
+            margin:
+              4px 10px 4px 0;
+            white-space:nowrap;
+          "
+
+        >
+
+          <span
+
+            style="
+              display:inline-block;
+              width:22px;
+              height:3px;
+              background:${color};
+              margin-right:5px;
+            "
+
+          ></span>
+
+
+          ${esc(s.name)}
+
+        </span>
+
+      `;
+
+    }
+  );
+
+
+  // ==========================================================
+  // スマホ用CSS
+  //
+  // 毎年の縦線は必ず表示
+  // 年文字はスマホでは2年おき
+  // ==========================================================
+
+  const mobileYearCSS = `
+
+    <style>
+
+      #leagueGraph
+      .graph-year {
+
+        font-size:12px;
+
       }
-    )
-    .join("");
 
 
-  // 選手名とポイント
-  const labels =
+      @media
+      (max-width:600px) {
 
-    list
+        #leagueGraph
+        .graph-year {
 
-      .map(
-        (m, i) => `
+          display:none;
 
-          <circle
-            cx="${x(i)}"
-            cy="${y(getRating(m))}"
-            r="4"
-            fill="currentColor"
-          />
+        }
 
 
-          <text
-            x="${x(i)}"
-            y="${height - 38}"
-            text-anchor="middle"
-            font-size="12"
-            fill="#333"
-          >
-            ${esc(m.name)}
-          </text>
+        #leagueGraph
+        .graph-year:nth-of-type(2n) {
 
-        `
-      )
+          display:block;
 
-      .join("");
+        }
 
+      }
+
+
+    </style>
+
+  `;
+
+
+  // ==========================================================
+  // 表示
+  // ==========================================================
 
   target.innerHTML = `
+
+    ${mobileYearCSS}
+
 
     <div class="card">
 
       <h3
         style="
           text-align:center;
+          margin-bottom:8px;
         "
       >
-        現在のレイティング比較
+
+        レイティング推移
+
       </h3>
+
+
+      <div
+        style="
+          text-align:center;
+          font-size:13px;
+          margin-bottom:10px;
+        "
+      >
+
+        ${legend}
+
+      </div>
 
 
       <div
         style="
           width:100%;
           overflow-x:auto;
+          -webkit-overflow-scrolling:touch;
         "
       >
 
         <svg
-          viewBox="0 0 ${width} ${height}"
+
+          viewBox="
+            0
+            0
+            ${width}
+            ${height}
+          "
+
           width="100%"
+
           height="${height}"
+
+          preserveAspectRatio="xMinYMin meet"
+
           role="img"
-          aria-label="参加者の現在のレイティング比較グラフ"
+
+          aria-label="
+            選択された参加者の
+            レイティング推移グラフ
+          "
+
         >
 
-          ${grid}
+          <!-- 毎年の縦線 -->
+
+          ${yearLines}
 
 
-          <polyline
-            points="${points}"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linejoin="round"
-            stroke-linecap="round"
-          />
+          <!-- Y軸の横線 -->
+
+          ${yGrid}
 
 
-          ${labels}
+          <!-- レイティング推移 -->
+
+          ${lines}
+
+
+          <!-- 年 -->
+
+          ${yearLabels}
 
         </svg>
 
       </div>
 
+
+      <p
+        style="
+          text-align:center;
+          font-size:12px;
+          color:#666;
+          margin-top:8px;
+        "
+      >
+
+        最大7名まで表示しています。
+
+      </p>
+
     </div>
 
   `;
+
 }
 
 
-// --------------------------------------------------
+// ============================================================
 // 対戦相手表示
-// 「勝」「負」のどちらかを選択
-// --------------------------------------------------
+// ============================================================
 
 function renderOpponents() {
 
-  const t =
+  if (!$("target") || !$("opponents")) {
+    return;
+  }
+
+
+  const targetIndex =
     Number(
       $("target").value || 0
     );
@@ -524,241 +1552,271 @@ function renderOpponents() {
 
       .filter(
         (_, i) =>
-          i !== t
+          i !== targetIndex
       )
 
-      .map(m => {
+      .map(
+        m => {
 
-        const idx =
-          members.indexOf(m);
+          const index =
+            members.indexOf(m);
 
 
-        return `
-
-          <div
-            class="opponent-row"
-            style="
-              padding:8px 0;
-              border-bottom:1px solid #e5e7eb;
-            "
-          >
-
-            <div>
-
-              <strong>
-                ${esc(m.name)}
-              </strong>
-
-              (${m.id})
-
-              / レイティング ${m.rating}
-
-            </div>
-
+          return `
 
             <div
+
+              class="opponent-row"
+
               style="
-                margin-top:6px;
+                padding:8px 0;
+                border-bottom:
+                  1px solid #e5e7eb;
               "
+
             >
 
+              <div>
 
-              <label
+                <strong>
+                  ${esc(m.name)}
+                </strong>
+
+                (${m.id})
+
+                /
+
+                レイティング
+
+                ${
+                  m.rating === "初"
+
+                    ? `初`
+
+                    : m.rating
+                }
+
+              </div>
+
+
+              <div
                 style="
-                  display:inline-block;
-                  margin-right:18px;
-                  font-weight:normal;
+                  margin-top:6px;
                 "
               >
 
-                <input
-                  type="radio"
-                  name="result-${idx}"
-                  class="opp-result"
-                  value="${idx}:win"
+                <label
+                  style="
+                    display:inline-block;
+                    margin-right:18px;
+                  "
                 >
 
-                勝
+                  <input
 
-              </label>
+                    type="radio"
+
+                    name="
+                      result-${index}
+                    "
+
+                    class="opp-result"
+
+                    value="${index}:win"
+
+                  >
+
+                  勝
+
+                </label>
 
 
-              <label
-                style="
-                  display:inline-block;
-                  font-weight:normal;
-                "
-              >
+                <label>
 
-                <input
-                  type="radio"
-                  name="result-${idx}"
-                  class="opp-result"
-                  value="${idx}:loss"
-                >
+                  <input
 
-                負
+                    type="radio"
 
-              </label>
+                    name="
+                      result-${index}
+                    "
 
+                    class="opp-result"
+
+                    value="${index}:loss"
+
+                  >
+
+                  負
+
+                </label>
+
+              </div>
 
             </div>
 
-          </div>
+          `;
 
-        `;
-
-      })
+        }
+      )
 
       .join("");
+
 }
 
 
-// --------------------------------------------------
-// 勝敗予測の結果推定
-// --------------------------------------------------
+// ============================================================
+// 勝敗計算
+// ============================================================
 
 function calculate() {
 
-  // ------------------------------------------------
-  // 1.
-  // 数値レイティングの中から最低値を取得
-  // 「初」の仮レイティングとして使用
-  // ------------------------------------------------
+  if (!members.length) {
+    return;
+  }
 
-  const validRatings = members
 
-    .map(
-      m =>
-        Number(m.rating)
-    )
+  // ==========================================================
+  // 最低レイティング
+  // ==========================================================
 
-    .filter(
-      n =>
-        !isNaN(n)
-    );
+  const numericRatings =
+
+    members
+
+      .map(
+        m =>
+          Number(m.rating)
+      )
+
+      .filter(
+        n =>
+          Number.isFinite(n)
+      );
 
 
   const minRating =
-    validRatings.length
-
+    numericRatings.length
       ? Math.min(
-          ...validRatings
+          ...numericRatings
         )
-
       : 0;
 
 
-  // ------------------------------------------------
-  // 2.
-  // 「初」の選手は最低値を使用
-  // ------------------------------------------------
+  // ==========================================================
+  // 「初」は最低点として計算
+  // ==========================================================
 
-  const getRating = m =>
+  const getRating =
+    member => {
 
-    m.rating === "初" ||
-    isNaN(
-      Number(m.rating)
-    )
+      if (
+        member.rating === "初"
+      ) {
 
-      ? minRating
+        return minRating;
 
-      : Number(
-          m.rating
+      }
+
+
+      const value =
+        Number(
+          member.rating
         );
 
 
-  const t =
+      return Number.isFinite(value)
+        ? value
+        : minRating;
+
+    };
+
+
+  const targetIndex =
     Number(
       $("target").value
     );
 
 
-  // 基準選手のレイティング
   const base =
     getRating(
-      members[t]
+      members[targetIndex]
     );
 
 
-  const selections = [
+  const selections =
 
-    ...document.querySelectorAll(
-      ".opp-result:checked"
-    )
-
-  ];
+    [
+      ...document.querySelectorAll(
+        ".opp-result:checked"
+      )
+    ];
 
 
   let total = 0;
 
+
   const rows = [];
 
 
-  // ------------------------------------------------
-  // 3.
-  // 選択された相手ごとに計算
-  // ------------------------------------------------
+  // ==========================================================
+  // 各対戦相手
+  // ==========================================================
 
   for (
     const input of selections
   ) {
 
     const [
-      idxText,
+      indexText,
       result
     ] =
       input.value.split(":");
 
 
-    const i =
-      Number(idxText);
+    const index =
+      Number(indexText);
 
 
-    // 相手のレイティング
-    const r =
+    const opponent =
+      members[index];
+
+
+    const opponentRating =
       getRating(
-        members[i]
+        opponent
       );
 
 
     // レイティング差
     const diff =
       Math.abs(
-        base - r
+        base -
+        opponentRating
       );
 
 
-    // ポイント表から該当するものを取得
-    const rec =
+    // ポイント表
+    const record =
       POINTS.find(
         x =>
           diff <= x[0]
-      )
-      ||
+      ) ||
       POINTS.at(-1);
 
 
-    // ------------------------------------------------
-    // 自分が格下かどうか
-    // ------------------------------------------------
-
+    // 自分が格下か
     const isLower =
-      base < r;
+      base <
+      opponentRating;
 
 
-    let change = 0;
+    let change;
 
 
-    // ------------------------------------------------
-    // 勝った場合
-    //
-    // 自分が格下
-    // → 大きく増える
-    //
-    // 自分が格上
-    // → 小さく増える
-    // ------------------------------------------------
+    // --------------------------------------------------------
+    // 勝ち
+    // --------------------------------------------------------
 
     if (
       result === "win"
@@ -766,29 +1824,28 @@ function calculate() {
 
       change =
         isLower
-          ? rec[2]
-          : rec[1];
+
+          ? record[2]
+
+          : record[1];
 
     }
 
 
-    // ------------------------------------------------
-    // 負けた場合
-    //
-    // 自分が格下
-    // → 小さく減る
-    //
-    // 自分が格上
-    // → 大きく減る
-    // ------------------------------------------------
+    // --------------------------------------------------------
+    // 負け
+    // --------------------------------------------------------
 
     else {
 
       change =
+
         -(
           isLower
-            ? rec[1]
-            : rec[2]
+
+            ? record[1]
+
+            : record[2]
         );
 
     }
@@ -801,21 +1858,18 @@ function calculate() {
     rows.push({
 
       相手:
-        members[i].name,
-
+        opponent.name,
 
       相手レイティング:
 
-        members[i].rating === "初"
+        opponent.rating === "初"
 
           ? `初(${minRating})`
 
-          : members[i].rating,
-
+          : opponent.rating,
 
       差:
         diff,
-
 
       勝敗:
 
@@ -825,12 +1879,13 @@ function calculate() {
 
           : "負",
 
-
       増減:
 
-        (change >= 0
-          ? "+"
-          : "") +
+        (
+          change >= 0
+            ? "+"
+            : ""
+        ) +
         change
 
     });
@@ -838,10 +1893,9 @@ function calculate() {
   }
 
 
-  // ------------------------------------------------
-  // 4.
-  // 最終結果
-  // ------------------------------------------------
+  // ==========================================================
+  // 最終レイティング
+  // ==========================================================
 
   const estimated =
     base +
@@ -849,16 +1903,22 @@ function calculate() {
 
 
   const totalText =
-    (total >= 0
-      ? "+"
-      : "") +
+    (
+      total >= 0
+        ? "+"
+        : ""
+    ) +
     total;
 
 
-  // ------------------------------------------------
-  // 5.
-  // 結果表示
-  // ------------------------------------------------
+  // ==========================================================
+  // 表示
+  // ==========================================================
+
+  if (!$("calcResult")) {
+    return;
+  }
+
 
   $("calcResult").innerHTML = `
 
@@ -867,19 +1927,19 @@ function calculate() {
       基準選手：
 
       ${esc(
-        members[t].name
+        members[targetIndex].name
       )}
 
       /
 
-      現在
+      現在：
 
       ${
-        members[t].rating === "初"
+        members[targetIndex].rating === "初"
 
           ? `初(${minRating})`
 
-          : members[t].rating
+          : members[targetIndex].rating
       }
 
     </p>
@@ -889,6 +1949,7 @@ function calculate() {
       rows.length
 
         ? table(
+
             rows,
 
             [
@@ -898,6 +1959,7 @@ function calculate() {
               "勝敗",
               "増減"
             ]
+
           )
 
         : `
@@ -906,7 +1968,7 @@ function calculate() {
 
             対戦相手の
             「勝」または「負」を
-            1つ以上選択してください。
+            選択してください。
 
           </p>
 
@@ -915,11 +1977,14 @@ function calculate() {
 
 
     <div
+
       class="card"
+
       style="
         margin-top:14px;
         text-align:center;
       "
+
     >
 
       <h3>
@@ -928,10 +1993,12 @@ function calculate() {
 
 
       <p
+
         style="
           font-size:20px;
           margin:8px 0;
         "
+
       >
 
         <strong>
@@ -951,16 +2018,17 @@ function calculate() {
     </div>
 
   `;
+
 }
 
 
-// --------------------------------------------------
-// 表作成
-// --------------------------------------------------
+// ============================================================
+// HTMLテーブル
+// ============================================================
 
 function table(
   rows,
-  cols
+  columns
 ) {
 
   return `
@@ -975,12 +2043,12 @@ function table(
 
           <tr>
 
-            ${cols
+            ${columns
 
               .map(
-                c =>
+                column =>
                   `<th>
-                    ${esc(c)}
+                    ${esc(column)}
                   </th>`
               )
 
@@ -996,18 +2064,19 @@ function table(
           ${rows
 
             .map(
-              r => `
+              row => `
 
                 <tr>
 
-                  ${cols
+                  ${columns
 
                     .map(
-                      c =>
+                      column =>
 
                         `<td>
                           ${esc(
-                            r[c] ?? ""
+                            row[column] ??
+                            ""
                           )}
                         </td>`
 
@@ -1029,25 +2098,23 @@ function table(
     </div>
 
   `;
+
 }
 
 
-// --------------------------------------------------
+// ============================================================
 // CSV解析
-// --------------------------------------------------
+// ============================================================
 
-function parseCSV(
-  text
-) {
+function parseCSV(text) {
 
   const rows = [];
-
 
   let row = [];
 
   let cell = "";
 
-  let q = false;
+  let quoted = false;
 
 
   for (
@@ -1056,18 +2123,18 @@ function parseCSV(
     i++
   ) {
 
-    const c =
+    const char =
       text[i];
 
 
-    const n =
+    const next =
       text[i + 1];
 
 
     if (
-      c === '"' &&
-      q &&
-      n === '"'
+      char === '"' &&
+      quoted &&
+      next === '"'
     ) {
 
       cell += '"';
@@ -1075,23 +2142,25 @@ function parseCSV(
       i++;
 
       continue;
+
     }
 
 
     if (
-      c === '"'
+      char === '"'
     ) {
 
-      q =
-        !q;
+      quoted =
+        !quoted;
 
       continue;
+
     }
 
 
     if (
-      c === "," &&
-      !q
+      char === "," &&
+      !quoted
     ) {
 
       row.push(
@@ -1102,20 +2171,21 @@ function parseCSV(
         "";
 
       continue;
+
     }
 
 
     if (
       (
-        c === "\n" ||
-        c === "\r"
+        char === "\n" ||
+        char === "\r"
       ) &&
-      !q
+      !quoted
     ) {
 
       if (
-        c === "\r" &&
-        n === "\n"
+        char === "\r" &&
+        next === "\n"
       ) {
 
         i++;
@@ -1148,13 +2218,13 @@ function parseCSV(
       row =
         [];
 
-
       continue;
+
     }
 
 
     cell +=
-      c;
+      char;
 
   }
 
@@ -1175,7 +2245,12 @@ function parseCSV(
   }
 
 
-  const h =
+  if (!rows.length) {
+    return [];
+  }
+
+
+  const headers =
     rows
       .shift()
       .map(
@@ -1185,17 +2260,17 @@ function parseCSV(
 
 
   return rows.map(
-    r =>
+    row =>
 
       Object.fromEntries(
 
-        h.map(
-          (k, i) =>
+        headers.map(
+          (header, index) =>
 
             [
-              k,
+              header,
               (
-                r[i] ??
+                row[index] ??
                 ""
               ).trim()
             ]
@@ -1209,28 +2284,36 @@ function parseCSV(
 }
 
 
-// --------------------------------------------------
+// ============================================================
 // HTMLエスケープ
-// --------------------------------------------------
+// ============================================================
 
-function esc(
-  s
-) {
+function esc(value) {
 
   return String(
-    s
+    value
   ).replace(
     /[&<>"']/g,
 
-    c =>
+    char =>
 
       ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      }[c])
+        "&":
+          "&amp;",
+
+        "<":
+          "&lt;",
+
+        ">":
+          "&gt;",
+
+        '"':
+          "&quot;",
+
+        "'":
+          "&#39;"
+
+      }[char])
 
   );
 
