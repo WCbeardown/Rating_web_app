@@ -40,13 +40,20 @@ body {
     padding: 10px 0 40px;
 }
 
+
 .back {
     display: inline-block;
-    color: var(--primary);
-    font-weight: 800;
-    font-size: 14px;
     margin-bottom: 10px;
+
+    color: #1976d2;
+    font-size: 14px;
+    font-weight: 700;
+
     text-decoration: none;
+}
+
+.back:hover {
+    text-decoration: underline;
 }
 
 .site-header {
@@ -349,4 +356,55 @@ tbody tr:hover {
     td {
         padding: 7px 5px;
     }
+}
+
+/* チーム名は画面幅に合わせて折り返す */
+table th:nth-child(3),
+table td:nth-child(3) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: left;
+}
+
+/* スマホではチーム名を特に見やすくする */
+@media (max-width: 600px) {
+
+    table {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    table th:nth-child(1),
+    table td:nth-child(1) {
+        width: 42px;
+    }
+
+    table th:nth-child(2),
+    table td:nth-child(2) {
+        width: 70px;
+        white-space: nowrap;
+    }
+
+    table th:nth-child(3),
+    table td:nth-child(3) {
+        width: auto;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        text-align: left;
+    }
+
+    table th:nth-child(4),
+    table td:nth-child(4) {
+        width: 65px;
+        white-space: nowrap;
+    }
+}
+
+.notice {
+    margin: 10px 0 0;
+    color: #b45309;
+    font-size: 13px;
+    font-weight: 700;
 }
