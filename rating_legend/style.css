@@ -548,3 +548,19 @@ tbody tr:hover {
   }
 
 }
+
+/* トップへ戻る */
+.back {
+    display: inline-block;
+    margin-bottom: 10px;
+
+    color: #1976d2;
+    font-size: 14px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.back:hover {
+    text-decoration: underline;
+}
