@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>羽曳野チャンピオンズ</title>
+
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<main class="container">
+
+<a href="../index.html" class="back">← トップへ戻る</a>
+
+<header class="site-header">
+    <p class="eyebrow">HABIKINO RATING</p>
+    <h1>羽曳野チャンピオンズ</h1>
+    <p>
+        指定したクラス・部・順位の入賞回数から、
+        羽曳野レイティングのチャンピオンを検索します。
+    </p>
+</header>
+
+
+<section class="panel">
+
+    <h2>入賞条件を選択</h2>
+
+    <p class="hint">
+        集計したいクラス・部・順位にチェックを入れてください。
+    </p>
+
+    <div id="checkboxes" class="check-list"></div>
+
+</section>
+
+
+<section class="panel">
+
+    <button id="searchButton" class="button primary full">
+        チャンピオン検索
+    </button>
+
+    <div id="status" class="status"></div>
+
+</section>
+
+
+<section id="results" class="panel hidden">
+
+    <h2>羽曳野チャンピオンズ TOP20</h2>
+
+    <p class="hint">
+        選択した条件での入賞回数が多い順に表示しています。
+    </p>
+
+    <div id="resultTable" class="table-wrap"></div>
+
+</section>
+
+</main>
+
+<script src="app.js"></script>
+
+</body>
+</html>
