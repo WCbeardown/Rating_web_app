@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>レイティングレジェンドランキング</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+</head>
+
+
+<body>
+
+  <main class="container">
+
+    <header class="page-header">
+
+      <h1>
+        レイティングレジェンドランキング
+      </h1>
+
+      <p class="description">
+        指定した期間・大会における参加回数を集計し、
+        参加回数の多い会員をランキング表示します。
+      </p>
+
+      <p
+        id="dataStatus"
+        class="data-status"
+      >
+        データ読み込み中……
+      </p>
+
+    </header>
+
+
+    <!-- ==========================================
+         条件設定
+    =========================================== -->
+
+    <section class="card">
+
+      <h2>
+        対象期間
+      </h2>
+
+
+      <div class="year-area">
+
+        <div class="year-item">
+
+          <label for="startYear">
+            開始年
+          </label>
+
+          <select
+            id="startYear"
+          ></select>
+
+        </div>
+
+
+        <span class="year-separator">
+          ～ 
+        </span>
+
+
+        <div class="year-item">
+
+          <label for="endYear">
+            終了年
+          </label>
+
+          <select
+            id="endYear"
+          ></select>
+
+        </div>
+
+      </div>
+
+
+      <!-- ========================================
+           大会選択
+      ========================================= -->
+
+      <h2>
+        対象となる大会
+      </h2>
+
+
+      <div
+        id="tournamentSelector"
+        class="tournament-selector"
+      >
+
+        <label class="radio-item all-item">
+
+          <input
+            type="checkbox"
+            name="tournament"
+            value="ALL"
+            id="tournamentAll"
+            checked
+          >
+
+          <span>
+            ALL
+          </span>
+
+        </label>
+
+
+        <label class="radio-item">
+
+          <input
+            type="checkbox"
+            name="tournament"
+            value="羽曳野"
+          >
+
+          <span>
+            羽曳野
+          </span>
+
+        </label>
+
+
+        <label class="radio-item">
+
+          <input
+            type="checkbox"
+            name="tournament"
+            value="羽曳野若葉"
+          >
+
+          <span>
+            羽曳野若葉
+          </span>
+
+        </label>
+
+
+        <label class="radio-item">
+
+          <input
+            type="checkbox"
+            name="tournament"
+            value="神戸"
+          >
+
+          <span>
+            神戸
+          </span>
+
+        </label>
+
+
+        <label class="radio-item">
+
+          <input
+            type="checkbox"
+            name="tournament"
+            value="向日市"
+          >
+
+          <span>
+            向日市
+          </span>
+
+        </label>
+
+
+        <label class="radio-item">
+
+          <input
+            type="checkbox"
+            name="tournament"
+            value="HPC"
+          >
+
+          <span>
+            HPC
+          </span>
+
+        </label>
+
+
+        <label class="radio-item">
+
+          <input
+            type="checkbox"
+            name="tournament"
+            value="カミ"
+          >
+
+          <span>
+            カミ
+          </span>
+
+        </label>
+
+      </div>
+
+
+      <button
+        id="rankingButton"
+        class="ranking-button"
+      >
+        レジェンドランキング
+      </button>
+
+    </section>
+
+
+    <!-- ==========================================
+         結果
+    =========================================== -->
+
+    <section
+      id="resultSection"
+      class="card result-card hidden"
+    >
+
+      <div
+        id="summary"
+        class="summary"
+      ></div>
+
+
+      <div
+        id="rankingTable"
+      ></div>
+
+    </section>
+
+
+  </main>
+
+
+  <script src="app.js"></script>
+
+</body>
+
+</html>
