@@ -2,6 +2,30 @@
 // 「自分のリーグ分析」と同じレイティング増減表を使用。
 // 参考: Rating_web_app/match-rating/app.js の POINTS
 
+
+// ============================================================
+// Supabase設定
+// ============================================================
+
+const SUPABASE_URL =
+  "https://hbzjahdvxvlakbuiupcq.supabase.co";
+
+// SupabaseのConnect画面に表示された
+// sb_publishable_ から始まるPublishable keyをここに貼り付ける
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
+
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+
+// ============================================================
+// レイティング計算
+// ============================================================
+
 const POINTS = [
   [12,  8,  8],
   [37,  7, 10],
@@ -79,7 +103,12 @@ function formatSigned(value) {
   return "0";
 }
 
-function calculate() {
+
+// ============================================================
+// メイン計算
+// ============================================================
+
+async function calculate() {
   const myRating = Number($("myRating").value);
 
   if (!Number.isFinite(myRating) || myRating < 0) {
@@ -97,14 +126,18 @@ function calculate() {
     if (ratingText === "" && result === "") continue;
 
     if (ratingText === "" || result === "") {
-      showError(`${i}試合目の「相手のレイティング」と「勝敗」を両方入力してください。`);
+      showError(
+        `${i}試合目の「相手のレイティング」と「勝敗」を両方入力してください。`
+      );
       return;
     }
 
     const opponentRating = Number(ratingText);
 
     if (!Number.isFinite(opponentRating) || opponentRating < 0) {
-      showError(`${i}試合目の相手レイティングが正しくありません。`);
+      showError(
+        `${i}試合目の相手レイティングが正しくありません。`
+      );
       return;
     }
 
@@ -122,7 +155,11 @@ function calculate() {
 
   const details = matches.map(match => {
     const diff = match.opponentRating - myRating;
-    const change = getChange(myRating, match.opponentRating, match.result);
+    const change = getChange(
+      myRating,
+      match.opponentRating,
+      match.result
+    );
 
     return {
       ...match,
@@ -131,19 +168,102 @@ function calculate() {
     };
   });
 
-  const totalChange = details.reduce((sum, m) => sum + m.change, 0);
-  const wins = details.filter(m => m.result === "win").length;
-  const losses = details.filter(m => m.result === "loss").length;
+  const totalChange = details.reduce(
+    (sum, m) => sum + m.change,
+    0
+  );
+
+  const wins = details.filter(
+    m => m.result === "win"
+  ).length;
+
+  const losses = details.filter(
+    m => m.result === "loss"
+  ).length;
+
   const finalRating = myRating + totalChange;
 
-  renderResults(myRating, details, totalChange, finalRating, wins, losses);
+
+  // ----------------------------------------------------------
+  // 今まで通り計算結果を画面に表示
+  // ----------------------------------------------------------
+
+  renderResults(
+    myRating,
+    details,
+    totalChange,
+    finalRating,
+    wins,
+    losses
+  );
+
+
+  // ----------------------------------------------------------
+  // Supabaseへ利用データを保存
+  // ----------------------------------------------------------
+
+  await saveUsageData({
+    myRating,
+    matches,
+    details,
+    totalChange,
+    finalRating,
+    wins,
+    losses
+  });
 }
 
-function renderResults(myRating, details, totalChange, finalRating, wins, losses) {
+
+// ============================================================
+// Supabaseへの保存
+// ============================================================
+
+async function saveUsageData(data) {
+
+  const { error } = await supabaseClient
+    .from("app_usage")
+    .insert({
+      app_name: "rating_calc",
+      action: "calculate",
+      input_data: data
+    });
+
+  if (error) {
+    // DB保存に失敗しても、レイティング計算自体は
+    // 正常に使えるようにする
+    console.error(
+      "Supabaseへのデータ保存に失敗しました:",
+      error
+    );
+
+    return false;
+  }
+
+  console.log(
+    "Supabaseへのデータ保存に成功しました。"
+  );
+
+  return true;
+}
+
+
+// ============================================================
+// 結果表示
+// ============================================================
+
+function renderResults(
+  myRating,
+  details,
+  totalChange,
+  finalRating,
+  wins,
+  losses
+) {
   const rows = details.map(m => {
     const diffText = formatSigned(m.diff);
     const changeText = formatSigned(m.change);
-    const resultText = m.result === "win" ? "勝ち" : "負け";
+    const resultText =
+      m.result === "win" ? "勝ち" : "負け";
 
     return `
       <tr>
@@ -151,7 +271,9 @@ function renderResults(myRating, details, totalChange, finalRating, wins, losses
         <td>${m.opponentRating}</td>
         <td>${diffText}</td>
         <td>${resultText}</td>
-        <td class="${m.change >= 0 ? "positive" : "negative"}">${changeText}</td>
+        <td class="${m.change >= 0 ? "positive" : "negative"}">
+          ${changeText}
+        </td>
       </tr>
     `;
   }).join("");
@@ -162,16 +284,19 @@ function renderResults(myRating, details, totalChange, finalRating, wins, losses
         <span>開始レイティング</span>
         <strong>${myRating}</strong>
       </div>
+
       <div class="summary-item">
         <span>対戦成績</span>
         <strong>${wins}勝 ${losses}敗</strong>
       </div>
+
       <div class="summary-item final">
         <span>その日の最終結果</span>
         <strong class="${totalChange >= 0 ? "positive" : "negative"}">
           ${formatSigned(totalChange)}
         </strong>
       </div>
+
       <div class="summary-item">
         <span>終了後レイティング</span>
         <strong>${finalRating}</strong>
@@ -202,8 +327,17 @@ function renderResults(myRating, details, totalChange, finalRating, wins, losses
   `;
 
   $("resultCard").classList.remove("hidden");
-  $("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  $("resultCard").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
+
+
+// ============================================================
+// エラー表示
+// ============================================================
 
 function showError(message) {
   $("resultCard").classList.remove("hidden");
@@ -212,8 +346,12 @@ function showError(message) {
     <div class="error">${escapeHtml(message)}</div>
   `;
 
-  $("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("resultCard").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
+
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, c => ({
