@@ -4,7 +4,7 @@ const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
 
 // rating_calc/app.js に入れている
 // Supabase Publishable Key と同じものを入れてください。
-const SUPABASE_PUBLISHABLE_KEY = "ここにPublishable Keyを貼る";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
