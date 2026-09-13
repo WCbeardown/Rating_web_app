@@ -197,12 +197,12 @@ async function calculate() {
     losses
   );
 
-
+console.log("saveUsageDataを呼び出します");
   // ----------------------------------------------------------
   // Supabaseへ利用データを保存
   // ----------------------------------------------------------
 
-  await saveUsageData({
+  saveUsageData({
     myRating,
     matches,
     details,
