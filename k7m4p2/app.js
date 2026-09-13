@@ -2,7 +2,7 @@
 
 const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
 
-// rating_calc/app.js に入れている
+// rating_calc/app.js に入っている
 // Supabase Publishable Key と同じものを入れてください。
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
 
@@ -136,5 +136,5 @@ function escapeHtml(value) {
     ">": "&gt;",
     '"': "&quot;",
     "'": "&#39;"
-  }[c]);
+  }[c]));
 }
