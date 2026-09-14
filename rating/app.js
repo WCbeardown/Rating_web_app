@@ -151,14 +151,7 @@ function renderApp(shouldScroll = false) {
   const members = memberInputs.map(input => Number(input.value)).filter(Number.isFinite);
   const startYear = Number(startYearInput.value);
   const endYear = Number(endYearInput.value);
-
-  // 利用ログ保存
-  saveUsageData({
-    startYear,
-    endYear,
-    members: members.filter(member => member !== DEFAULT_MEMBER)
-  });
-  
+ 
   if (members.length === 0) {
     setStatus("会員番号を1人以上入力してください。", "error");
     return;
@@ -186,7 +179,15 @@ function renderApp(shouldScroll = false) {
   renderStatsTable(selected);
   renderDetailTables(selected);
 
-  if (shouldScroll) resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+if (shouldScroll) {
+  // 利用ログ保存
+  saveUsageData({
+    startYear,
+    endYear,
+    members: members.filter(member => member !== DEFAULT_MEMBER)
+  });
+
+  resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderChart(selected, startYear, endYear) {
