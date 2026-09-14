@@ -25,7 +25,7 @@ let lastUpdatedEl;
 const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
 
 // rating_calc/app.js と同じ Publishable Key
-const SUPABASE_PUBLISHABLE_KEY = "ここにrating_calcと同じキーを入れる";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
