@@ -8,6 +8,19 @@ let ratingHistory = [];
 
 const $ = id => document.getElementById(id);
 
+// ============================================================
+// Supabase
+// ============================================================
+
+const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
+
+// rating_calc/app.js と同じ Publishable Key
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 
 // ============================================================
 // レイティング増減表
@@ -2180,8 +2193,60 @@ function calculate() {
 
   `;
 
+  // ==========================================================
+  // Supabaseへ利用データを保存
+  // ==========================================================
+
+  const wins = selections.filter(
+    input => input.value.endsWith(":win")
+  ).length;
+
+  const losses = selections.filter(
+    input => input.value.endsWith(":loss")
+  ).length;
+
+  saveUsageData({
+    memberNo: members[targetIndex].id,
+    name: members[targetIndex].name,
+    wins,
+    losses
+  });
+
 }
 
+// ============================================================
+// Supabase 利用ログ保存
+// ============================================================
+
+async function saveUsageData(data) {
+
+  try {
+
+    const { error } = await supabaseClient
+      .from("app_usage")
+      .insert({
+        app_name: "match_rating",
+        action: "calculate",
+        input_data: data
+      });
+
+    if (error) {
+      console.error(
+        "利用ログ保存エラー:",
+        error
+      );
+    }
+
+  } catch (error) {
+
+    console.error(
+      "利用ログ保存エラー:",
+      error
+    );
+
+  }
+
+}
 
 // ============================================================
 // HTMLテーブル
