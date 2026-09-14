@@ -188,6 +188,7 @@ if (shouldScroll) {
   });
 
   resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function renderChart(selected, startYear, endYear) {
