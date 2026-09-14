@@ -18,6 +18,20 @@ let statusEl;
 let resultsEl;
 let lastUpdatedEl;
 
+// ============================================================
+// Supabase
+// ============================================================
+
+const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
+
+// rating_calc/app.js と同じ Publishable Key
+const SUPABASE_PUBLISHABLE_KEY = "ここにrating_calcと同じキーを入れる";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
 document.addEventListener("DOMContentLoaded", () => {
   memberList = document.getElementById("memberList");
   addMemberButton = document.getElementById("addMemberButton");
@@ -138,6 +152,13 @@ function renderApp(shouldScroll = false) {
   const startYear = Number(startYearInput.value);
   const endYear = Number(endYearInput.value);
 
+  // 利用ログ保存
+  saveUsageData({
+    startYear,
+    endYear,
+    members: members.filter(member => member !== DEFAULT_MEMBER)
+  });
+  
   if (members.length === 0) {
     setStatus("会員番号を1人以上入力してください。", "error");
     return;
@@ -523,4 +544,22 @@ function escapeHtml(value) {
   return value.replace(/[&<>"']/g, ch => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[ch]));
+}
+
+async function saveUsageData(data) {
+  try {
+    const { error } = await supabaseClient
+      .from("app_usage")
+      .insert({
+        app_name: "rating_graph",
+        action: "display",
+        input_data: data
+      });
+
+    if (error) {
+      console.error("利用ログ保存エラー:", error);
+    }
+  } catch (error) {
+    console.error("利用ログ保存エラー:", error);
+  }
 }
