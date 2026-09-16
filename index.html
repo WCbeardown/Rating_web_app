@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レイティング大会・羽曳野レイティング　アプリ</title><link rel="stylesheet" href="style.css"></head>
+<title>レイティング大会・羽曳野レイティング　アプリ</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>    
 <body><main class="container">
 <header class="header"><h1>レイティング大会・羽曳野レイティング　アプリ</h1></header>
 <div class="home-grid">
@@ -32,6 +35,47 @@
         羽曳野チャンピオンズを開く
     </a>
 </section>
-<section class="card home-card"><h2>➕ レイティング増減</h2><p>羽曳野レイティングの終了後の増減を参加者リストの写真から計算します</p><a class="btn" href="legacy-rating/index.html">レイティング増減を開く</a></section>
+<section class="card home-card"><h2>➕ レイティング増減</h2><p>羽曳野レイティングの終了後の増減を参加者リストの写真から計算します</p><a class="btn" href="legacy-rating/index.html" id="ratingChangeLink">レイティング増減を開く</a></section>
 </div>
-</main></body></html>
+</main>
+
+<script>
+const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+);
+
+document
+    .getElementById("ratingChangeLink")
+    .addEventListener("click", async function(event) {
+
+        // 先に外部ページへ移動するのを止める
+        event.preventDefault();
+
+        try {
+            const { error } = await supabaseClient
+                .from("app_usage")
+                .insert({
+                    app_name: "rating_change",
+                    action: "open",
+                    input_data: {}
+                });
+
+            if (error) {
+                console.error("利用ログ保存エラー:", error);
+            }
+
+        } catch (error) {
+            console.error("利用ログ保存エラー:", error);
+        }
+
+        // 保存処理が終わってから移動
+        window.location.href = this.href;
+    });
+</script>
+
+</body>
+</html>
