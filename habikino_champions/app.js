@@ -1,3 +1,12 @@
+const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+let data=[];
 let data = [];
 
 const classes = ["A", "B", "C", "D"];
@@ -295,7 +304,15 @@ function searchChampions() {
         return;
     }
 
-
+    // ★ここに追加
+saveUsageData({
+    all: $("check-all").checked,
+    selections: selected.map(cb => ({
+        className: cb.dataset.class,
+        part: cb.dataset.part,
+        rank: cb.dataset.rank
+    }))
+});
     // 選択条件を作る
     const conditions =
         selected.map(cb => ({
@@ -503,4 +520,22 @@ function esc(value) {
             }[c])
         );
 
+}
+
+async function saveUsageData(data) {
+ try {
+  const { error } = await supabaseClient
+   .from("app_usage")
+   .insert({
+    app_name: "winners",
+    action: "search",
+    input_data: data
+   });
+
+  if (error) {
+   console.error("利用ログ保存エラー:", error);
+  }
+ } catch (error) {
+  console.error("利用ログ保存エラー:", error);
+ }
 }
