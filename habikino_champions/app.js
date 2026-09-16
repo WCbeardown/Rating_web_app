@@ -6,7 +6,6 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
-let data=[];
 let data = [];
 
 const classes = ["A", "B", "C", "D"];
