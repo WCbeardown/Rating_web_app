@@ -110,20 +110,33 @@ function renderRecentStats(data) {
         minute: "2-digit"
       });
 
-    const inputText = row.input_data
-      ? JSON.stringify(row.input_data, null, 2)
-      : "";
+    let inputText = "";
+
+    if (row.input_data && typeof row.input_data === "object") {
+      inputText = Object.entries(row.input_data)
+        .map(([key, value]) => {
+          if (Array.isArray(value)) {
+            value = value.join(", ");
+          } else if (typeof value === "object" && value !== null) {
+            value = JSON.stringify(value);
+          }
+
+          return `${key}: ${value}`;
+        })
+        .join(" / ");
+    }
 
     return `
       <tr>
         <td>${escapeHtml(dateText)}</td>
         <td>${escapeHtml(row.app_name)}</td>
         <td>${escapeHtml(row.action || "")}</td>
-        <td>${escapeHtml(inputText).replace(/\n/g, "<br>")}</td>
+        <td class="input-data">${escapeHtml(inputText)}</td>
       </tr>
     `;
   }).join("");
 }
+
 function showError(message) {
   $("appStats").innerHTML =
     `<div class="error">${escapeHtml(message)}</div>`;
