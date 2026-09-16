@@ -1,7 +1,15 @@
 // ============================================================
 // レイティングレジェンドランキング
 // ============================================================
+const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
 
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+let data=[];
 let ratingData = [];
 
 let minYear = 2000;
@@ -1887,4 +1895,21 @@ function escapeHtml(value) {
         }[char])
     );
 
+}
+async function saveUsageData(data) {
+  try {
+    const { error } = await supabaseClient
+      .from("app_usage")
+      .insert({
+        app_name: "rating_legend",
+        action: "search",
+        input_data: data
+      });
+
+    if (error) {
+      console.error("利用ログ保存エラー:", error);
+    }
+  } catch (error) {
+    console.error("利用ログ保存エラー:", error);
+  }
 }
