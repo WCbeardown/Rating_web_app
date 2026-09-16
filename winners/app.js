@@ -1,3 +1,10 @@
+const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 let data=[];
 const $=id=>document.getElementById(id);
 document.addEventListener("DOMContentLoaded",()=>{ $("search").addEventListener("click",search); load(); });
@@ -28,6 +35,12 @@ function search(){
  const surname=$("surname").value.trim(),given=$("given").value.trim(),team=$("team").value.trim();
  if(!surname&&!given&&!team){$("status").className="status error";$("status").textContent="少なくとも1つ以上の検索条件を入力してください。";return}
  const result=data.filter(x=>(x["名前"]||"").includes(surname)&&(x["名前"]||"").includes(given)&&(x["チーム名"]||"").includes(team));
+  // 利用ログ保存
+ saveUsageData({
+  surname,
+  givenName: given,
+  teamName: team
+ });
  $("results").classList.remove("hidden");$("total").textContent=result.length+"回";
  const groups=["A","B","C","D"], heads=["クラス","1部優勝","1部準優勝","1部3位","2部優勝","2部準優勝","2部3位"];
  let h="<table><thead><tr>"+heads.map(x=>`<th>${esc(x)}</th>`).join("")+"</tr></thead><tbody>";
@@ -36,3 +49,20 @@ function search(){
 }
 function table(rows,cols){return "<table><thead><tr>"+cols.map(c=>`<th>${esc(c)}</th>`).join("")+"</tr></thead><tbody>"+rows.map(r=>"<tr>"+cols.map(c=>`<td>${esc(r[c]||"")}</td>`).join("")+"</tr>").join("")+"</tbody></table>"}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function saveUsageData(data) {
+ try {
+  const { error } = await supabaseClient
+   .from("app_usage")
+   .insert({
+    app_name: "winners",
+    action: "search",
+    input_data: data
+   });
+
+  if (error) {
+   console.error("利用ログ保存エラー:", error);
+  }
+ } catch (error) {
+  console.error("利用ログ保存エラー:", error);
+ }
+}
