@@ -526,7 +526,7 @@ async function saveUsageData(data) {
   const { error } = await supabaseClient
    .from("app_usage")
    .insert({
-    app_name: "winners",
+    app_name: "habikino_champions",
     action: "search",
     input_data: data
    });
