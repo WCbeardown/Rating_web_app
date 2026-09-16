@@ -110,16 +110,20 @@ function renderRecentStats(data) {
         minute: "2-digit"
       });
 
+    const inputText = row.input_data
+      ? JSON.stringify(row.input_data, null, 2)
+      : "";
+
     return `
       <tr>
         <td>${escapeHtml(dateText)}</td>
         <td>${escapeHtml(row.app_name)}</td>
         <td>${escapeHtml(row.action || "")}</td>
+        <td><pre>${escapeHtml(inputText)}</pre></td>
       </tr>
     `;
   }).join("");
 }
-
 function showError(message) {
   $("appStats").innerHTML =
     `<div class="error">${escapeHtml(message)}</div>`;
