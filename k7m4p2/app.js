@@ -119,7 +119,7 @@ function renderRecentStats(data) {
         <td>${escapeHtml(dateText)}</td>
         <td>${escapeHtml(row.app_name)}</td>
         <td>${escapeHtml(row.action || "")}</td>
-        <td><pre>${escapeHtml(inputText)}</pre></td>
+        <td>${escapeHtml(inputText).replace(/\n/g, "<br>")}</td>
       </tr>
     `;
   }).join("");
