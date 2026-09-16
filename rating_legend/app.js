@@ -953,6 +953,12 @@ function createRanking() {
 
     }
 
+    saveUsageData({
+      startYear: startYear,
+      endYear: endYear,
+      selections: places
+    });
+
 
     // ========================================================
     // 対象期間
