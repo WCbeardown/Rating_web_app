@@ -106,124 +106,377 @@ function isNameCandidate(value) {
     return false;
   }
 
-  const text = value.trim();
+  const text =
+    String(value).trim();
 
   if (!text) {
     return false;
   }
 
-  // 数字だけなら名前ではない
-  if (/^\d+$/.test(text)) {
+
+  // 見出し
+  if (isHeading(text)) {
     return false;
   }
 
-  // 大会情報など
-  if (/第\d+回/.test(text)) {
+
+  // 日付など
+  if (
+    /\d{4}\/\d{1,2}\/\d{1,2}/.test(text)
+  ) {
     return false;
   }
 
-  return true;
+
+  // 数字だけ
+  if (
+    /^\d+$/.test(text)
+  ) {
+    return false;
+  }
+
+
+  // ほぼ数字だけの文字列
+  const digits =
+    (text.match(/\d/g) || []).length;
+
+  if (
+    text.length > 0 &&
+    digits / text.length > 0.5
+  ) {
+    return false;
+  }
+
+
+  // 日本語またはアルファベットがあれば名前候補
+  return /[ぁ-んァ-ヶ一-龯A-Za-z]/.test(text);
 }
-
 
 // ----------------------------------------
 // OCRテキストから参加者を抽出
 // ----------------------------------------
-
 function parseRecordsFromText(text) {
+
+  text = text
+    .replace(/\u3000/g, " ")
+    .replace(/\ufeff/g, "")
+    .replace(/\xa0/g, " ");
 
   const lines = text
     .split(/\r?\n/)
     .map(line => line.trim())
     .filter(line => line !== "");
 
+  // 会員番号候補
+  // 6～8桁の数字
+  const memberIdRegex =
+    /(?<!\d)\d{6,8}(?!\d)/g;
+
+  // レーティング
+  // 通常は4桁
+  const ratingRegex =
+    /(?<!\d)(\d{4})(?!\d)/;
+
   const records = [];
+  const seenIds = new Set();
 
-  for (const line of lines) {
+  /*
+   * まずテキスト全体から
+   * 「会員番号が出現した場所」を探す
+   */
+  const occurrences = [];
 
-    // 数字を抽出
-    const numbers = line.match(/\d+/g);
+  lines.forEach((line, lineIndex) => {
 
-    if (!numbers || numbers.length === 0) {
+    memberIdRegex.lastIndex = 0;
+
+    let match;
+
+    while (
+      (match = memberIdRegex.exec(line)) !== null
+    ) {
+
+      occurrences.push({
+        lineIndex,
+        start: match.index,
+        end: match.index + match[0].length,
+        memberId: match[0]
+      });
+
+    }
+
+  });
+
+
+  /*
+   * 会員番号ごとに、
+   * その後ろの数行から
+   * 氏名・大会前レーティングを探す
+   */
+  for (
+    let index = 0;
+    index < occurrences.length;
+    index++
+  ) {
+
+    const current =
+      occurrences[index];
+
+    const next =
+      occurrences[index + 1];
+
+
+    const memberId =
+      normalizeMemberId(
+        current.memberId
+      );
+
+    if (!memberId) {
       continue;
     }
 
-    let memberNo = null;
 
-    // 6～8桁程度の数字を会員番号候補にする
-    for (const n of numbers) {
-
-      const normalized = normalizeMemberId(n);
-
-      if (
-        normalized &&
-        normalized.length >= 5 &&
-        normalized.length <= 7
-      ) {
-        memberNo = normalized;
-        break;
-      }
-    }
-
-    if (!memberNo) {
+    // 同じ会員番号の重複を防止
+    if (seenIds.has(memberId)) {
       continue;
     }
 
+    seenIds.add(memberId);
 
-    // 会員番号以外の文字列から名前候補を探す
-    const parts = line.split(/\s+/);
+
+    /*
+     * 今の会員番号の後ろから
+     * 次の会員番号までを見る
+     */
+    const candidateLines = [];
+
+
+    // 同じ行に会員番号の後ろがある場合
+    const sameLine =
+      lines[current.lineIndex]
+        .substring(current.end)
+        .trim();
+
+    if (sameLine) {
+      candidateLines.push(sameLine);
+    }
+
+
+    /*
+     * 次の会員番号が出てくるまで、
+     * 最大6行を見る
+     */
+    const nextLineIndex =
+      next
+        ? next.lineIndex
+        : lines.length;
+
+
+    for (
+      let j = current.lineIndex + 1;
+      j < Math.min(
+        nextLineIndex,
+        current.lineIndex + 7
+      );
+      j++
+    ) {
+
+      candidateLines.push(
+        lines[j]
+      );
+
+    }
+
 
     let name = "";
+    let beforeRating = null;
 
-    for (const part of parts) {
 
-      if (
-        part === memberNo ||
-        /^\d+$/.test(part)
-      ) {
+    /*
+     * 候補行から氏名とレーティングを探す
+     */
+    for (
+      const line of candidateLines
+    ) {
+
+      /*
+       * まず4桁のレーティングを探す
+       */
+      const ratingMatch =
+        line.match(ratingRegex);
+
+
+      if (ratingMatch) {
+
+        const rating =
+          Number(
+            ratingMatch[1]
+          );
+
+
+        if (
+          rating >= 500 &&
+          rating <= 3000
+        ) {
+
+          beforeRating = rating;
+
+        }
+
+
+        /*
+         * レーティングより前の部分が氏名
+         */
+        const nameCandidate =
+          line
+            .substring(
+              0,
+              ratingMatch.index
+            )
+            .trim();
+
+
+        if (
+          !name &&
+          isNameCandidate(
+            nameCandidate
+          )
+        ) {
+
+          name =
+            cleanName(
+              nameCandidate
+            );
+
+        }
+
         continue;
       }
 
-      if (isNameCandidate(part)) {
-        name = part;
-        break;
-      }
-    }
 
-
-    // レーティング候補
-    let beforeRating = null;
-
-    for (const n of numbers) {
-
-      const value = Number(n);
-
+      /*
+       * 「初」の場合
+       *
+       * 初参加者はレーティングが
+       * OCRテキストに存在しない
+       */
       if (
-        value >= 500 &&
-        value <= 3000
+        line === "初" ||
+        line.includes(" 初")
       ) {
-        beforeRating = value;
+
+        if (!name) {
+
+          const nameCandidate =
+            line
+              .replace(/初/g, "")
+              .trim();
+
+          if (
+            isNameCandidate(
+              nameCandidate
+            )
+          ) {
+
+            name =
+              cleanName(
+                nameCandidate
+              );
+
+          }
+
+        }
+
+        continue;
+      }
+
+
+      /*
+       * レーティングが別行にある場合、
+       * この行を氏名候補として扱う
+       */
+      if (
+        !name &&
+        isNameCandidate(line)
+      ) {
+
+        name =
+          cleanName(line);
+
       }
 
     }
 
-    if (!beforeRating) {
-      continue;
-    }
 
-
+    /*
+     * 氏名が取れなかった場合でも
+     * 会員番号は結果に残す
+     *
+     * これが重要です。
+     */
     records.push({
-      memberNo,
-      name,
+      memberNo: memberId,
+      name: name || "",
       beforeRating
     });
 
   }
 
+
   return records;
 }
 
 
+function cleanName(value) {
+
+  if (!value) {
+    return "";
+  }
+
+  let name =
+    String(value).trim();
+
+
+  // 先頭の順位番号などを除去
+  name =
+    name.replace(
+      /^\d+\s*/,
+      ""
+    );
+
+
+  // 末尾の数字を除去
+  name =
+    name.replace(
+      /\s+\d+\s*$/,
+      ""
+    );
+
+
+  // Z、初など
+  name =
+    name.replace(
+      /\s*[Zz]\s*$/,
+      ""
+    );
+
+  name =
+    name.replace(
+      /\s*初\s*$/,
+      ""
+    );
+
+
+  // 余分な空白を整理
+  name =
+    name.replace(
+      /\s+/g,
+      " "
+    ).trim();
+
+
+  return name;
+}
 // ----------------------------------------
 // rating_data_all.csv を読み込む
 // ----------------------------------------
