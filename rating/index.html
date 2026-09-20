@@ -4,10 +4,10 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head><body><main class="container">
 <a href="../index.html" class="small">← トップへ戻る</a>
-<header class="header"><h1>グラフ・分析</h1><p>会員番号を入力して「グラフ・表を表示」ボタンを押してください</p><p id="lastUpdated" class="small">最終更新日：読み込み中</p></header>
+<header class="header"><h1>グラフ・分析</h1><p>会員番号を入力して「グラフ・表を表示」ボタンを押してください。グラフの下には、過去の最高・最低などと年平均が表示されます。</p><p id="lastUpdated" class="small">最終更新日：読み込み中</p></header>
 <section class="card">
-<h2>条件</h2><div id="memberList"></div>
-<button id="addMemberButton" class="btn light" type="button">＋ 会員を追加</button>
+<h2>会員番号入力（最大6名まで追加できます）</h2><div id="memberList"></div>
+<button id="addMemberButton" class="btn light" type="button">＋ 会員版番号を追加（最大６名）</button>
 <div class="grid" style="margin-top:14px">
 <div><label for="startYear">開始年</label><input id="startYear" type="number" min="2000" max="2040" value="2019"></div>
 <div><label for="endYear">終了年</label><input id="endYear" type="number" min="2000" max="2040" value="2026"></div>
