@@ -1,239 +1,542 @@
+/* ========================================
+   羽曳野レーティング増減
+   ======================================== */
+
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-
+  background: #f4f7fb;
+  color: #17243a;
   font-family:
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
+    "Noto Sans JP",
     sans-serif;
-
-  background: #f5f6f8;
-
-  color: #222;
+  line-height: 1.7;
 }
 
 
+/* ----------------------------------------
+   全体
+   ---------------------------------------- */
+
 .container {
-  max-width: 1100px;
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 60px;
+}
+
+
+/* ----------------------------------------
+   ヘッダー
+   ---------------------------------------- */
+
+.page-header {
+  padding: 10px 0 28px;
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #52709d;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.3;
+  color: #102a52;
+}
+
+.lead {
+  margin: 12px 0 0;
+  font-size: 17px;
+  color: #52627a;
+}
+
+
+/* ----------------------------------------
+   カード
+   ---------------------------------------- */
+
+.card {
+  margin-bottom: 20px;
+  padding: 28px;
+  background: #ffffff;
+  border: 1px solid #e0e7f0;
+  border-radius: 12px;
+  box-shadow:
+    0 3px 12px rgba(20, 50, 90, 0.05);
+}
+
+.card h2 {
+  margin: 0 0 20px;
+  color: #102a52;
+  font-size: 23px;
+}
+
+
+/* ----------------------------------------
+   使い方
+   ---------------------------------------- */
+
+.how-to-card {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 36px;
+  align-items: start;
+}
+
+.how-to-content {
+  min-width: 0;
+}
+
+
+/* 手順 */
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.steps li:last-child {
+  margin-bottom: 0;
+}
+
+.step-number {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #1769e0;
+  color: #ffffff;
+
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.steps strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 16px;
+}
+
+.steps p {
+  margin: 0;
+  color: #65748a;
+  font-size: 14px;
+}
+
+
+/* ----------------------------------------
+   写真
+   ---------------------------------------- */
+
+.example-image {
+  text-align: center;
+}
+
+.example-image img {
+  display: block;
+
+  width: 100%;
+  max-width: 250px;
+  height: auto;
 
   margin: 0 auto;
 
-  padding:
-    24px
-    16px
-    60px;
-}
-
-
-.header {
-  margin-bottom: 24px;
-}
-
-
-.eyebrow {
-  margin-bottom: 4px;
-
-  font-size: 12px;
-
-  letter-spacing: 2px;
-
-  color: #777;
-}
-
-
-h1 {
-  margin:
-    0 0 10px;
-
-  font-size: 28px;
-}
-
-
-h2 {
-  margin-top: 0;
-
-  font-size: 20px;
-}
-
-
-.card {
-  background: #fff;
-
-  border-radius: 12px;
-
-  padding: 24px;
-
-  margin-bottom: 20px;
+  border: 1px solid #d5dce6;
+  border-radius: 8px;
 
   box-shadow:
-    0 2px 10px
-    rgba(0, 0, 0, 0.05);
+    0 3px 10px rgba(0, 0, 0, 0.10);
+}
+
+.example-image p {
+  margin: 8px 0 0;
+
+  font-size: 12px;
+  color: #68778e;
 }
 
 
-ol {
-  line-height: 1.9;
+/* ----------------------------------------
+   注意
+   ---------------------------------------- */
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin: -4px 0 20px;
+  padding: 10px 14px;
+
+  border-radius: 7px;
+
+  background: #eaf4ff;
+  color: #1763c6;
+
+  font-size: 14px;
+}
+
+.notice-icon {
+  flex: 0 0 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 22px;
+  height: 22px;
+
+  border-radius: 50%;
+
+  background: #1769e0;
+  color: white;
+
+  font-weight: 700;
 }
 
 
-.note {
-  font-size: 13px;
+/* ----------------------------------------
+   入力
+   ---------------------------------------- */
 
-  color: #777;
+.input-card {
+  margin-top: 20px;
 }
 
+.description {
+  margin: -10px 0 12px;
+  color: #65748a;
+  font-size: 14px;
+}
 
 textarea {
-  width: 100%;
+  display: block;
 
-  min-height: 360px;
+  width: 100%;
+  min-height: 190px;
+
+  padding: 15px;
 
   resize: vertical;
 
-  padding: 14px;
-
-  border:
-    1px solid #ccc;
-
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
 
-  font-size: 15px;
+  background: #ffffff;
 
+  color: #17243a;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+
+  font-size: 14px;
   line-height: 1.6;
 
-  font-family: monospace;
+  outline: none;
+}
+
+textarea:focus {
+  border-color: #1769e0;
+
+  box-shadow:
+    0 0 0 3px rgba(23, 105, 224, 0.12);
+}
+
+textarea::placeholder {
+  color: #a1adbd;
 }
 
 
-.btn {
-  margin-top: 16px;
+/* ----------------------------------------
+   ボタン
+   ---------------------------------------- */
 
-  padding:
-    12px
-    28px;
+.calculate-button {
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px 20px;
 
-  border: none;
+  border: 0;
+  border-radius: 7px;
 
-  border-radius: 8px;
-
-  background: #333;
-
-  color: #fff;
+  background: #233b5d;
+  color: white;
 
   font-size: 16px;
+  font-weight: 700;
 
   cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.05s ease;
+}
+
+.calculate-button:hover {
+  background: #1769e0;
+}
+
+.calculate-button:active {
+  transform: translateY(1px);
 }
 
 
-.btn:hover {
-  opacity: 0.85;
+/* ----------------------------------------
+   ステータス
+   ---------------------------------------- */
+
+.status {
+  margin-top: 12px;
+
+  color: #61728a;
+
+  font-size: 14px;
 }
 
-
-#status {
-  margin-top: 16px;
-
-  font-weight: 500;
-}
-
-
-.success {
-  color: #287a3d;
-}
-
-
-.error {
+.status.error {
   color: #c62828;
 }
 
 
-.loading {
-  color: #555;
+/* ----------------------------------------
+   結果
+   ---------------------------------------- */
+
+.result-card {
+  background: #f8fffc;
+  border-color: #d5eee4;
 }
 
+.result-card h2 {
+  margin-bottom: 16px;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  min-width: 600px;
+
+  border-collapse: collapse;
+
+  background: #ffffff;
+
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+th {
+  padding: 11px 12px;
+
+  background: #edf2f8;
+
+  color: #203858;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  text-align: left;
+
+  white-space: nowrap;
+}
+
+td {
+  padding: 11px 12px;
+
+  border-top: 1px solid #e4e9ef;
+
+  font-size: 14px;
+
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: #f7faff;
+}
+
+
+/* 増減 */
+
+td.positive {
+  color: #087f5b;
+  font-weight: 700;
+}
+
+td.negative {
+  color: #c62828;
+  font-weight: 700;
+}
+
+
+/* ----------------------------------------
+   非表示
+   ---------------------------------------- */
 
 .hidden {
   display: none;
 }
 
 
-.table-wrap {
-  overflow-x: auto;
-}
+/* ========================================
+   スマートフォン
+   ======================================== */
 
-
-table {
-  width: 100%;
-
-  border-collapse: collapse;
-
-  white-space: nowrap;
-}
-
-
-th,
-td {
-  padding:
-    10px
-    12px;
-
-  border-bottom:
-    1px solid #ddd;
-
-  text-align: left;
-}
-
-
-th {
-  background: #f1f2f4;
-}
-
-
-.positive {
-  font-weight: bold;
-}
-
-
-.negative {
-  font-weight: bold;
-}
-
-
-@media (max-width: 600px) {
+@media (max-width: 700px) {
 
   .container {
-    padding:
-      16px
-      10px
-      40px;
+    width: calc(100% - 20px);
+    padding-top: 18px;
+    padding-bottom: 40px;
   }
 
 
-  .card {
-    padding: 16px;
-  }
+  /* ヘッダー */
 
+  .page-header {
+    padding-bottom: 20px;
+  }
 
   h1 {
-    font-size: 23px;
+    font-size: 28px;
   }
 
+  .lead {
+    font-size: 15px;
+  }
+
+
+  /* カード */
+
+  .card {
+    padding: 18px;
+    border-radius: 10px;
+  }
+
+
+  /* 使い方 */
+
+  .how-to-card {
+    display: flex;
+    flex-direction: column;
+
+    gap: 22px;
+  }
+
+  .how-to-content {
+    width: 100%;
+  }
+
+
+  /* 写真 */
+
+  .example-image {
+    width: 100%;
+  }
+
+  .example-image img {
+    width: 190px;
+    max-width: 60%;
+  }
+
+
+  /* 手順 */
+
+  .steps li {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .step-number {
+    flex-basis: 30px;
+    width: 30px;
+    height: 30px;
+
+    font-size: 15px;
+  }
+
+  .steps strong {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .steps p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+
+  /* 注意 */
+
+  .notice {
+    align-items: flex-start;
+    font-size: 13px;
+  }
+
+
+  /* 入力 */
+
+  .input-card h2 {
+    font-size: 21px;
+  }
 
   textarea {
-    min-height: 300px;
+    min-height: 220px;
+    font-size: 14px;
   }
 
 
-  th,
-  td {
-    padding: 8px;
+  /* ボタン */
 
-    font-size: 14px;
+  .calculate-button {
+    padding: 14px;
+    font-size: 16px;
+  }
+
+
+  /* 結果 */
+
+  .result-card {
+    padding: 14px;
+  }
+
+  .result-card h2 {
+    padding-left: 4px;
+    font-size: 21px;
   }
 
 }
