@@ -1,540 +1,222 @@
 // ========================================
-// Supabase
+// 羽曳野レーティング増減計算
 // ========================================
+
+
+// ----------------------------------------
+// Supabase
+// ----------------------------------------
 
 const SUPABASE_URL =
   "https://hbzjahdvxvlakbuiupcq.supabase.co";
 
-// 既存アプリで使用しているPublishable Key
+// 既存の公開キーを入れてください
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
 
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
-
-
-// ========================================
-// DOM
-// ========================================
-
-const $ = id =>
-  document.getElementById(id);
-
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-
-    $("calculateButton")
-      .addEventListener(
-        "click",
-        calculate
-      );
-
-  }
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
 );
 
 
-// ========================================
+// ----------------------------------------
+// グローバル変数
+// ----------------------------------------
+
+let ratingMap = null;
+
+
+// ----------------------------------------
+// 起動
+// ----------------------------------------
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const button = document.getElementById("calculateButton");
+
+  button.addEventListener("click", calculate);
+
+  loadRatingData();
+
+});
+
+
+// ----------------------------------------
 // 大会番号を取得
-// ========================================
+// 例：第294回羽曳野RS大会 → 294
+// ----------------------------------------
 
 function extractTournamentNumber(text) {
 
-  if (!text) {
+  const match = text.match(/第\s*(\d+)\s*回/);
+
+  if (!match) {
     return null;
   }
 
-  const patterns = [
-
-    /第\s*(\d+)\s*回\s*羽曳野RS大会/,
-    /第\s*(\d+)\s*回\s*羽曳野/,
-    /第\s*(\d+)\s*回/
-
-  ];
-
-  for (const pattern of patterns) {
-
-    const match =
-      text.match(pattern);
-
-    if (match) {
-      return Number(match[1]);
-    }
-
-  }
-
-  return null;
+  return Number(match[1]);
 }
 
 
-// ========================================
+// ----------------------------------------
 // 会員番号を正規化
-// ========================================
+//
+// Googleレンズで
+// 12345678
+// のように8桁になる場合は
+// 先頭1桁を削除
+// ----------------------------------------
 
 function normalizeMemberId(value) {
 
-  let text =
-    String(value).trim();
-
-  if (!text) {
+  if (value === null || value === undefined) {
     return null;
   }
 
-  // OCRで8桁になっている場合
-  // 先頭1桁を削除
-  if (/^\d{8}$/.test(text)) {
+  let text = String(value).trim();
 
-    text =
-      text.substring(1);
-
+  if (!text) {
+    return null;
   }
 
   // 数字以外を削除
-  text =
-    text.replace(/\D/g, "");
+  text = text.replace(/\D/g, "");
 
   if (!text) {
     return null;
   }
 
-  return Number(text);
+  // 8桁なら先頭1桁を削除
+  if (text.length === 8) {
+    text = text.substring(1);
+  }
+
+  return text;
 }
 
 
-// ========================================
-// 見出し判定
-// ========================================
+// ----------------------------------------
+// 名前らしい文字列か
+// ----------------------------------------
 
-function isHeading(text) {
+function isNameCandidate(value) {
 
-  const headers = [
-    "参加者",
-    "第",
-    "大会",
-    "グループ",
-    "ブロック",
-    "コート",
-    "会員番号",
-    "氏名",
-    "上位希望者",
-    "回",
-    "合番号"
-  ];
-
-  if (
-    headers.some(
-      header =>
-        text.includes(header)
-    )
-  ) {
-    return true;
+  if (!value) {
+    return false;
   }
 
-  if (
-    /^[\|\(\)\-\*]+$/.test(text)
-  ) {
-    return true;
-  }
-
-  if (
-    /\d{4}\/\d{1,2}\/\d{1,2}/.test(text)
-  ) {
-    return true;
-  }
-
-  if (
-    text.includes("年") &&
-    text.includes("月")
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-
-// ========================================
-// 氏名候補判定
-// ========================================
-
-function isNameCandidate(text) {
+  const text = value.trim();
 
   if (!text) {
     return false;
   }
 
-  if (isHeading(text)) {
+  // 数字だけなら名前ではない
+  if (/^\d+$/.test(text)) {
     return false;
   }
 
-  if (/\d{2,4}年/.test(text)) {
+  // 大会情報など
+  if (/第\d+回/.test(text)) {
     return false;
   }
 
-  if (text.includes("月")) {
-    return false;
-  }
-
-  const digits =
-    [...text]
-      .filter(c => /\d/.test(c))
-      .length;
-
-  if (
-    text.length > 0 &&
-    digits / text.length > 0.5
-  ) {
-    return false;
-  }
-
-  return /[ぁ-んァ-ヶ一-龯A-Za-z]/.test(text);
+  return true;
 }
 
 
-// ========================================
-// OCRテキスト解析
-// ========================================
+// ----------------------------------------
+// OCRテキストから参加者を抽出
+// ----------------------------------------
 
 function parseRecordsFromText(text) {
 
-  text =
-    text
-      .replace(/\u3000/g, " ")
-      .replace(/\ufeff/g, "")
-      .replace(/\u00a0/g, " ");
-
-  const lines =
-    text
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line => line !== "");
-
-  const memberIdRegex =
-    /\d{6,8}/g;
-
-  const ratingRegex =
-    /(?<!\d)(\d{4})(?!\d)/;
+  const lines = text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line !== "");
 
   const records = [];
 
-  const seenIds =
-    new Set();
+  for (const line of lines) {
 
+    // 数字を抽出
+    const numbers = line.match(/\d+/g);
 
-  for (
-    let i = 0;
-    i < lines.length;
-    i++
-  ) {
+    if (!numbers || numbers.length === 0) {
+      continue;
+    }
 
-    const line =
-      lines[i];
+    let memberNo = null;
 
-    const ids =
-      line.match(memberIdRegex);
+    // 6～8桁程度の数字を会員番号候補にする
+    for (const n of numbers) {
 
-    if (!ids) {
+      const normalized = normalizeMemberId(n);
+
+      if (
+        normalized &&
+        normalized.length >= 5 &&
+        normalized.length <= 7
+      ) {
+        memberNo = normalized;
+        break;
+      }
+    }
+
+    if (!memberNo) {
       continue;
     }
 
 
-    for (const memberIdRaw of ids) {
+    // 会員番号以外の文字列から名前候補を探す
+    const parts = line.split(/\s+/);
 
-      const memberId =
-        normalizeMemberId(
-          memberIdRaw
-        );
+    let name = "";
 
-      if (!memberId) {
+    for (const part of parts) {
+
+      if (
+        part === memberNo ||
+        /^\d+$/.test(part)
+      ) {
         continue;
       }
 
-      if (seenIds.has(memberId)) {
-        continue;
+      if (isNameCandidate(part)) {
+        name = part;
+        break;
       }
+    }
 
 
-      let name = null;
-      let ratingBefore = null;
+    // レーティング候補
+    let beforeRating = null;
 
+    for (const n of numbers) {
 
-      const pos =
-        line.indexOf(
-          memberIdRaw
-        );
-
-      const remainder =
-        line
-          .substring(
-            pos +
-            memberIdRaw.length
-          )
-          .trim();
-
-
-      // --------------------------------
-      // 同じ行から取得
-      // --------------------------------
-
-      if (remainder) {
-
-        const ratingMatch =
-          remainder.match(
-            ratingRegex
-          );
-
-        if (ratingMatch) {
-
-          ratingBefore =
-            Number(
-              ratingMatch[1]
-            );
-
-          const candidate =
-            remainder
-              .substring(
-                0,
-                ratingMatch.index
-              )
-              .trim();
-
-          if (
-            candidate &&
-            isNameCandidate(candidate)
-          ) {
-            name = candidate;
-          }
-
-        }
-        else if (
-          isNameCandidate(remainder)
-        ) {
-
-          name = remainder;
-
-        }
-
-      }
-
-
-      // --------------------------------
-      // 次の数行から取得
-      // --------------------------------
+      const value = Number(n);
 
       if (
-        !name ||
-        ratingBefore === null
+        value >= 500 &&
+        value <= 3000
       ) {
-
-        for (
-          let j = i + 1;
-          j < Math.min(
-            i + 6,
-            lines.length
-          );
-          j++
-        ) {
-
-          const s =
-            lines[j];
-
-          if (isHeading(s)) {
-            continue;
-          }
-
-          const match =
-            s.match(
-              ratingRegex
-            );
-
-          if (match) {
-
-            if (
-              /^\d{4}$/.test(s)
-            ) {
-
-              ratingBefore =
-                Number(s);
-
-              continue;
-
-            }
-            else {
-
-              const candidate =
-                s
-                  .substring(
-                    0,
-                    match.index
-                  )
-                  .trim();
-
-              if (
-                candidate &&
-                isNameCandidate(
-                  candidate
-                )
-              ) {
-
-                name = candidate;
-
-                ratingBefore =
-                  Number(
-                    match[1]
-                  );
-
-                break;
-              }
-
-            }
-
-          }
-
-
-          if (
-            isNameCandidate(s)
-          ) {
-
-            name = s;
-
-            const match2 =
-              s.match(
-                ratingRegex
-              );
-
-            if (match2) {
-
-              ratingBefore =
-                Number(
-                  match2[1]
-                );
-
-              name =
-                s
-                  .substring(
-                    0,
-                    match2.index
-                  )
-                  .trim();
-
-            }
-
-            break;
-          }
-
-        }
-
+        beforeRating = value;
       }
-
-
-      // --------------------------------
-      // レーティングだけ探す
-      // --------------------------------
-
-      if (
-        ratingBefore === null
-      ) {
-
-        for (
-          let j = i;
-          j < Math.min(
-            i + 8,
-            lines.length
-          );
-          j++
-        ) {
-
-          const s =
-            lines[j];
-
-          const match =
-            s.match(
-              ratingRegex
-            );
-
-          if (match) {
-
-            ratingBefore =
-              Number(
-                match[1]
-              );
-
-            break;
-
-          }
-
-          // 「初」の場合は
-          // 大会前レーティングなし
-          if (
-            s.includes("初")
-          ) {
-
-            ratingBefore =
-              null;
-
-            break;
-          }
-
-        }
-
-      }
-
-
-      // --------------------------------
-      // 氏名を整理
-      // --------------------------------
-
-      if (name) {
-
-        name =
-          name.replace(
-            /\d{6,8}/,
-            ""
-          );
-
-        name =
-          name.replace(
-            /\b\d+\b$/,
-            ""
-          );
-
-        name =
-          name.replace(
-            /\s+/g,
-            " "
-          );
-
-        name =
-          name.trim();
-
-        if (!name) {
-          name = null;
-        }
-
-      }
-
-
-      seenIds.add(memberId);
-
-
-      records.push({
-
-        memberNo:
-          memberId,
-
-        name:
-          name || "",
-
-        ratingBefore:
-          ratingBefore
-
-      });
 
     }
+
+    if (!beforeRating) {
+      continue;
+    }
+
+
+    records.push({
+      memberNo,
+      name,
+      beforeRating
+    });
 
   }
 
@@ -542,64 +224,106 @@ function parseRecordsFromText(text) {
 }
 
 
-// ========================================
-// rating_data_all.csvを読み込む
-// ========================================
-
-let ratingData = null;
-
+// ----------------------------------------
+// rating_data_all.csv を読み込む
+// ----------------------------------------
 
 async function loadRatingData() {
 
-  if (ratingData) {
-    return ratingData;
-  }
+  try {
 
+    setStatus("レーティングデータを読み込んでいます…");
 
-  const response =
-    await fetch(
+    const response = await fetch(
       "../data/rating_data_all.csv",
       {
         cache: "no-store"
       }
     );
 
+    if (!response.ok) {
 
-  if (!response.ok) {
+      throw new Error(
+        `CSV読み込み失敗（HTTP ${response.status}）`
+      );
 
-    throw new Error(
-      `rating_data_all.csvを読み込めませんでした（HTTP ${response.status}）`
+    }
+
+
+    // 今回確認したCSVはUTF-8
+    const buffer = await response.arrayBuffer();
+
+    let text = new TextDecoder("utf-8").decode(buffer);
+
+    // BOM除去
+    text = text.replace(/^\uFEFF/, "");
+
+
+    const rows = parseCSV(text);
+
+
+    // 高速検索用Map
+    ratingMap = new Map();
+
+
+    for (const row of rows) {
+
+      const place =
+        String(row["場所"] ?? "").trim();
+
+      const tournament =
+        Number(
+          String(row["回"] ?? "").trim()
+        );
+
+      const member =
+        normalizeMemberId(row["会員番号"]);
+
+      const rating =
+        Number(
+          String(row["レイティング"] ?? "").trim()
+        );
+
+
+      if (
+        place !== "羽曳野" ||
+        !Number.isFinite(tournament) ||
+        member === null ||
+        !Number.isFinite(rating)
+      ) {
+        continue;
+      }
+
+
+      const key =
+        `${tournament}_${member}`;
+
+      ratingMap.set(key, rating);
+
+    }
+
+
+    setStatus(
+      `レーティングデータ読み込み完了`
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    setStatus(
+      "レーティングデータを読み込めませんでした。",
+      true
     );
 
   }
 
-
-  // 既存CSVは日本語データなので
-  // Shift-JISを想定
-  const buffer =
-    await response.arrayBuffer();
-
-
-  const decoder =
-    new TextDecoder("utf-8");
-
-
-
-  const text =
-    decoder.decode(buffer);
-
-
-  ratingData =
-    parseCSV(text);
-
-
-  return ratingData;
 }
 
 
-// ========================================
-// CSV解析
-// ========================================
+// ----------------------------------------
+// CSVパーサー
+// ----------------------------------------
 
 function parseCSV(text) {
 
@@ -610,17 +334,10 @@ function parseCSV(text) {
   let quoted = false;
 
 
-  for (
-    let i = 0;
-    i < text.length;
-    i++
-  ) {
+  for (let i = 0; i < text.length; i++) {
 
-    const c =
-      text[i];
-
-    const next =
-      text[i + 1];
+    const c = text[i];
+    const next = text[i + 1];
 
 
     if (
@@ -630,7 +347,6 @@ function parseCSV(text) {
     ) {
 
       cell += '"';
-
       i++;
 
       continue;
@@ -639,8 +355,7 @@ function parseCSV(text) {
 
     if (c === '"') {
 
-      quoted =
-        !quoted;
+      quoted = !quoted;
 
       continue;
     }
@@ -652,7 +367,6 @@ function parseCSV(text) {
     ) {
 
       row.push(cell);
-
       cell = "";
 
       continue;
@@ -660,8 +374,7 @@ function parseCSV(text) {
 
 
     if (
-      (c === "\n" ||
-       c === "\r") &&
+      (c === "\n" || c === "\r") &&
       !quoted
     ) {
 
@@ -673,18 +386,14 @@ function parseCSV(text) {
       }
 
       row.push(cell);
-
       cell = "";
 
       if (
         row.some(
-          x =>
-            x.trim() !== ""
+          value => value.trim() !== ""
         )
       ) {
-
         rows.push(row);
-
       }
 
       row = [];
@@ -704,417 +413,285 @@ function parseCSV(text) {
   ) {
 
     row.push(cell);
-
     rows.push(row);
 
   }
 
 
-  if (!rows.length) {
+  if (rows.length === 0) {
     return [];
   }
 
 
   const headers =
-    rows.shift()
-      .map(
-        x => x.trim()
-      );
+    rows.shift().map(
+      value => value.trim()
+    );
 
 
   return rows.map(row => {
 
-    const obj = {};
+    const object = {};
 
-    headers.forEach(
-      (header, index) => {
+    headers.forEach((header, index) => {
 
-        obj[header] =
-          (row[index] ?? "")
-            .trim();
+      object[header] =
+        (row[index] ?? "").trim();
 
-      }
-    );
+    });
 
-    return obj;
+    return object;
 
   });
+
 }
 
 
-// ========================================
-// CSVから大会後レーティングを探す
-// ========================================
+// ----------------------------------------
+// 大会後レーティングを検索
+// ----------------------------------------
 
 function findAfterRating(
   tournamentNumber,
   memberNo
 ) {
 
-  if (!ratingData) {
+  if (!ratingMap) {
     return null;
   }
 
 
-  const targetMember =
-    String(
-      normalizeMemberId(memberNo)
-    );
+  const normalized =
+    normalizeMemberId(memberNo);
 
-
-  for (
-    const row of ratingData
-  ) {
-
-    const rowTournament =
-      Number(
-        String(
-          row["回"] ?? ""
-        ).trim()
-      );
-
-    const rowMember =
-      normalizeMemberId(
-        row["会員番号"]
-      );
-
-
-    const rowPlace =String(row["場所"] ?? "").trim();
-
-    if (
-      rowPlace === "羽曳野" &&
-      rowTournament === tournamentNumber &&
-      rowMember !== null &&
-      String(rowMember) === targetMember
-    ) {
-
-      const rating =
-        Number(
-          String(
-            row["レイティング"] ?? ""
-          ).trim()
-        );
-
-      if (
-        Number.isFinite(rating)
-      ) {
-
-        return rating;
-
-      }
-
-    }
-
+  if (!normalized) {
+    return null;
   }
 
-  return null;
+
+  const key =
+    `${tournamentNumber}_${normalized}`;
+
+
+  return ratingMap.get(key) ?? null;
+
 }
 
 
-// ========================================
-// メイン処理
-// ========================================
+// ----------------------------------------
+// 増減計算
+// ----------------------------------------
 
 async function calculate() {
 
   const text =
-    $("textInput")
-      .value
-      .trim();
-
-
-  $("status").textContent =
-    "";
-
-  $("resultSection")
-    .classList.add("hidden");
+    document.getElementById("textInput").value.trim();
 
 
   if (!text) {
 
-    $("status").textContent =
-      "OCRテキストを貼り付けてください。";
-
-    $("status").className =
-      "error";
+    setStatus(
+      "OCRテキストを貼り付けてください。",
+      true
+    );
 
     return;
   }
 
 
-  // --------------------------------
-  // 大会番号取得
-  // --------------------------------
+  if (!ratingMap) {
 
-  const tournamentNumber =
-    extractTournamentNumber(
-      text
+    setStatus(
+      "レーティングデータを読み込んでいます。少し待ってから再度押してください。",
+      true
     );
+
+    return;
+  }
+
+
+  // 大会番号
+  const tournamentNumber =
+    extractTournamentNumber(text);
 
 
   if (!tournamentNumber) {
 
-    $("status").textContent =
-      "大会番号（例：第294回）を検出できませんでした。";
-
-    $("status").className =
-      "error";
+    setStatus(
+      "大会番号（第○回）が見つかりませんでした。",
+      true
+    );
 
     return;
   }
 
 
-  $("status").textContent =
-    `第${tournamentNumber}回のデータを解析しています……`;
-
-  $("status").className =
-    "loading";
+  // OCRから参加者を抽出
+  const records =
+    parseRecordsFromText(text);
 
 
-  try {
+  if (records.length === 0) {
 
-    // --------------------------------
-    // CSV読み込み
-    // --------------------------------
+    setStatus(
+      "参加者データを読み取れませんでした。",
+      true
+    );
 
-    await loadRatingData();
+    return;
+  }
 
 
-    // --------------------------------
-    // OCR解析
-    // --------------------------------
+  // 大会後レーティングを取得
+  const results = records.map(record => {
 
-    const records =
-      parseRecordsFromText(
-        text
+    const afterRating =
+      findAfterRating(
+        tournamentNumber,
+        record.memberNo
       );
 
 
-    if (!records.length) {
+    let change = null;
 
-      throw new Error(
-        "参加者データを抽出できませんでした。"
-      );
+    if (afterRating !== null) {
+
+      change =
+        afterRating - record.beforeRating;
 
     }
 
 
-    // --------------------------------
-    // 大会後レーティング検索
-    // --------------------------------
+    return {
+      ...record,
+      afterRating,
+      change
+    };
 
-    const results =
-      records.map(
-        record => {
-
-          const ratingAfter =
-            findAfterRating(
-              tournamentNumber,
-              record.memberNo
-            );
+  });
 
 
-          let change = null;
+  renderResults(
+    tournamentNumber,
+    results
+  );
 
 
-          if (
-            record.ratingBefore !== null &&
-            ratingAfter !== null
-          ) {
+  // ------------------------------------
+  // Supabaseへ利用ログ
+  // 「増減表示」ボタンを押したときだけ
+  // ------------------------------------
 
-            change =
-              ratingAfter -
-              record.ratingBefore;
-
-          }
-
-
-          return {
-
-            ...record,
-
-            ratingAfter,
-
-            change
-
-          };
-
-        }
-      );
-
-
-    // --------------------------------
-    // 結果表示
-    // --------------------------------
-
-    renderResults(
-      tournamentNumber,
-      results
-    );
-
-
-    const found =
-      results.filter(
-        row =>
-          row.ratingAfter !== null
-      ).length;
-
-
-    $("status").textContent =
-      `${records.length}名を解析しました。` +
-      ` 大会後レーティング取得：${found}名`;
-
-    $("status").className =
-      "success";
-
-
-    // --------------------------------
-    // Supabase利用ログ
-    //
-    // 「増減表示」を押した時だけ
-    // ここが実行される
-    // --------------------------------
-
-    saveUsageData({
-      tournamentNumber:
-        tournamentNumber
-    });
-
-  }
-  catch (error) {
-
-    console.error(error);
-
-
-    $("status").textContent =
-      error.message ||
-      "処理中にエラーが発生しました。";
-
-    $("status").className =
-      "error";
-
-  }
+  saveUsageData({
+    tournamentNumber
+  });
 
 }
 
 
-// ========================================
+// ----------------------------------------
 // 結果表示
-// ========================================
+// ----------------------------------------
 
 function renderResults(
   tournamentNumber,
   results
 ) {
 
-  $("resultTitle").textContent =
-    `第${tournamentNumber}回羽曳野レイティング大会の増減結果`;
+  const section =
+    document.getElementById("resultSection");
+
+  const title =
+    document.getElementById("resultTitle");
+
+  const body =
+    document.getElementById("resultBody");
 
 
-  $("resultBody").innerHTML =
-    results
-      .map(row => {
-
-        let changeText =
-          "－";
+  title.textContent =
+    `第${tournamentNumber}回　結果`;
 
 
-        if (
-          row.change !== null
-        ) {
+  body.innerHTML =
+    results.map(record => {
 
-          if (
-            row.change > 0
-          ) {
+      let changeText = "";
 
-            changeText =
-              `+${row.change}`;
+      if (record.change !== null) {
 
-          }
-          else {
-
-            changeText =
-              String(
-                row.change
-              );
-
-          }
-
+        if (record.change > 0) {
+          changeText = `+${record.change}`;
+        } else {
+          changeText =
+            String(record.change);
         }
 
+      } else {
 
-        let changeClass =
-          "";
+        changeText = "―";
 
-
-        if (
-          row.change > 0
-        ) {
-
-          changeClass =
-            "positive";
-
-        }
-        else if (
-          row.change < 0
-        ) {
-
-          changeClass =
-            "negative";
-
-        }
+      }
 
 
-        return `
-          <tr>
+      let changeClass = "";
 
-            <td>
-              ${escapeHtml(
-                row.memberNo
-              )}
-            </td>
+      if (record.change > 0) {
+        changeClass = "positive";
+      }
 
-            <td>
-              ${escapeHtml(
-                row.name
-              )}
-            </td>
-
-            <td>
-              ${
-                row.ratingBefore ??
-                "－"
-              }
-            </td>
-
-            <td>
-              ${
-                row.ratingAfter ??
-                "－"
-              }
-            </td>
-
-            <td class="${changeClass}">
-              ${changeText}
-            </td>
-
-          </tr>
-        `;
-
-      })
-      .join("");
+      if (record.change < 0) {
+        changeClass = "negative";
+      }
 
 
-  $("resultSection")
-    .classList.remove(
-      "hidden"
-    );
+      return `
+        <tr>
+
+          <td>
+            ${escapeHtml(record.memberNo)}
+          </td>
+
+          <td>
+            ${escapeHtml(record.name)}
+          </td>
+
+          <td>
+            ${record.beforeRating}
+          </td>
+
+          <td>
+            ${
+              record.afterRating !== null
+                ? record.afterRating
+                : "―"
+            }
+          </td>
+
+          <td class="${changeClass}">
+            ${changeText}
+          </td>
+
+        </tr>
+      `;
+
+    }).join("");
+
+
+  section.classList.remove("hidden");
+
+
+  // 結果までスクロール
+  section.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
 }
 
 
-// ========================================
-// Supabase利用ログ
-// ========================================
+// ----------------------------------------
+// Supabase 利用ログ
+// ----------------------------------------
 
 async function saveUsageData(data) {
 
@@ -1124,16 +701,9 @@ async function saveUsageData(data) {
       await supabaseClient
         .from("app_usage")
         .insert({
-
-          app_name:
-            "rating_change",
-
-          action:
-            "calculate",
-
-          input_data:
-            data
-
+          app_name: "rating_change",
+          action: "calculate",
+          input_data: data
         });
 
 
@@ -1146,8 +716,7 @@ async function saveUsageData(data) {
 
     }
 
-  }
-  catch (error) {
+  } catch (error) {
 
     console.error(
       "利用ログ保存エラー:",
@@ -1159,22 +728,43 @@ async function saveUsageData(data) {
 }
 
 
-// ========================================
+// ----------------------------------------
+// ステータス表示
+// ----------------------------------------
+
+function setStatus(
+  message,
+  isError = false
+) {
+
+  const status =
+    document.getElementById("status");
+
+  status.textContent = message;
+
+  status.classList.toggle(
+    "error",
+    isError
+  );
+
+}
+
+
+// ----------------------------------------
 // HTMLエスケープ
-// ========================================
+// ----------------------------------------
 
 function escapeHtml(value) {
 
-  return String(value)
-    .replace(
-      /[&<>"']/g,
-      c => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      }[c])
-    );
+  return String(value).replace(
+    /[&<>"']/g,
+    c => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[c])
+  );
 
 }
