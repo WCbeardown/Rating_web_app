@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <title>羽曳野レーティング増減計算</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<main class="container">
+
+  <header class="header">
+    <p class="eyebrow">HABIKINO RATING</p>
+    <h1>羽曳野レーティング増減計算</h1>
+
+    <p>
+      Googleレンズで読み取った大会参加者データを貼り付けてください。
+    </p>
+  </header>
+
+
+  <section class="card">
+
+    <h2>使い方</h2>
+
+    <ol>
+      <li>大会参加者全体が写った写真を準備します。</li>
+      <li>Googleレンズで写真からテキストを抽出します。</li>
+      <li>必要なテキストをコピーします。</li>
+      <li>下の入力欄に貼り付けます。</li>
+      <li>「増減表示」を押します。</li>
+    </ol>
+
+    <p class="note">
+      GoogleレンズのOCR精度によって、会員番号・氏名・レーティングが
+      正しく認識されない場合があります。
+    </p>
+
+  </section>
+
+
+  <section class="card">
+
+    <h2>OCRテキストを貼り付け</h2>
+
+    <textarea
+      id="textInput"
+      placeholder="例：
+
+第294回羽曳野RS大会
+
+12345678 山田太郎 1702
+12345679 田中一郎 1688
+..."
+    ></textarea>
+
+    <button id="calculateButton" class="btn">
+      増減表示
+    </button>
+
+    <div id="status"></div>
+
+  </section>
+
+
+  <section id="resultSection" class="card hidden">
+
+    <h2 id="resultTitle"></h2>
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>会員番号</th>
+            <th>氏名</th>
+            <th>大会前</th>
+            <th>大会後</th>
+            <th>増減</th>
+          </tr>
+        </thead>
+
+        <tbody id="resultBody"></tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- このアプリ -->
+<script src="app.js"></script>
+
+</body>
+</html>
