@@ -581,9 +581,8 @@ async function loadRatingData() {
 
 
   const decoder =
-    new TextDecoder(
-      "shift-jis"
-    );
+    new TextDecoder("utf-8");
+
 
 
   const text =
@@ -780,12 +779,13 @@ function findAfterRating(
       );
 
 
+    const rowPlace =String(row["場所"] ?? "").trim();
+
     if (
-      rowTournament ===
-        tournamentNumber &&
+      rowPlace === "羽曳野" &&
+      rowTournament === tournamentNumber &&
       rowMember !== null &&
-      String(rowMember) ===
-        targetMember
+      String(rowMember) === targetMember
     ) {
 
       const rating =
