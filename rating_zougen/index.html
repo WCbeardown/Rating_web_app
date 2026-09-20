@@ -1,9 +1,8 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>羽曳野レーティング増減計算</title>
 
@@ -14,44 +13,111 @@
 
 <main class="container">
 
-  <header class="header">
-    <p class="eyebrow">HABIKINO RATING</p>
+  <!-- ヘッダー -->
+  <header class="page-header">
+    <div class="eyebrow">HABIKINO RATING</div>
+
     <h1>羽曳野レーティング増減計算</h1>
 
-    <p>
-      Googleレンズで読み取った大会参加者データを貼り付けてください。
+    <p class="lead">
+      Googleレンズで読み取った大会参加者データから、
+      大会後のレーティングと増減を表示します。
     </p>
   </header>
 
 
-  <section class="card">
+  <!-- 使い方 -->
+  <section class="card how-to-card">
 
-    <h2>使い方</h2>
+    <div class="how-to-content">
 
-    <ol>
-      <li>大会参加者全体が写った写真を準備します。</li>
-      <li>Googleレンズで写真からテキストを抽出します。</li>
-      <li>必要なテキストをコピーします。</li>
-      <li>下の入力欄に貼り付けます。</li>
-      <li>「増減表示」を押します。</li>
-    </ol>
+      <h2>使い方</h2>
 
-    <p class="note">
-      GoogleレンズのOCR精度によって、会員番号・氏名・レーティングが
-      正しく認識されない場合があります。
-    </p>
+      <ol class="steps">
+
+        <li>
+          <span class="step-number">1</span>
+          <div>
+            <strong>大会参加者全体が写った写真を準備します。</strong>
+            <p>大会番号（第○回）も写っている写真を使用してください。</p>
+          </div>
+        </li>
+
+        <li>
+          <span class="step-number">2</span>
+          <div>
+            <strong>Googleレンズで写真からテキストを抽出します。</strong>
+            <p>Googleレンズの「コピー」を使って文字を読み取ります。</p>
+          </div>
+        </li>
+
+        <li>
+          <span class="step-number">3</span>
+          <div>
+            <strong>必要なテキストをコピーします。</strong>
+            <p>読み取ったテキストをコピーしてください。</p>
+          </div>
+        </li>
+
+        <li>
+          <span class="step-number">4</span>
+          <div>
+            <strong>下の入力欄に貼り付けます。</strong>
+            <p>コピーしたテキストをそのまま貼り付けてください。</p>
+          </div>
+        </li>
+
+        <li>
+          <span class="step-number">5</span>
+          <div>
+            <strong>「増減表示」を押します。</strong>
+            <p>大会後のレーティングを取得し、増減を計算します。</p>
+          </div>
+        </li>
+
+      </ol>
+
+    </div>
+
+
+    <!-- Googleレンズ写真 -->
+    <div class="example-image">
+
+      <img
+        src="ocr_example.png"
+        alt="Googleレンズで大会参加者一覧を読み取っている例"
+      >
+
+      <p>例：大会参加者一覧の写真</p>
+
+    </div>
 
   </section>
 
 
-  <section class="card">
+  <!-- 注意 -->
+  <div class="notice">
+    <span class="notice-icon">i</span>
+
+    <div>
+      GoogleレンズのOCR精度によって、
+      会員番号・氏名・レーティングが正しく認識されない場合があります。
+    </div>
+  </div>
+
+
+  <!-- 入力 -->
+  <section class="card input-card">
 
     <h2>OCRテキストを貼り付け</h2>
+
+    <p class="description">
+      Googleレンズでコピーしたテキストをここに貼り付けてください。
+    </p>
 
     <textarea
       id="textInput"
       placeholder="例：
-
 第294回羽曳野RS大会
 
 12345678 山田太郎 1702
@@ -59,20 +125,30 @@
 ..."
     ></textarea>
 
-    <button id="calculateButton" class="btn">
+    <button
+      id="calculateButton"
+      class="calculate-button"
+      type="button"
+    >
       増減表示
     </button>
 
-    <div id="status"></div>
+    <div id="status" class="status">
+      まだ処理を行っていません。
+    </div>
 
   </section>
 
 
-  <section id="resultSection" class="card hidden">
+  <!-- 結果 -->
+  <section
+    id="resultSection"
+    class="card result-card hidden"
+  >
 
-    <h2 id="resultTitle"></h2>
+    <h2 id="resultTitle">結果</h2>
 
-    <div class="table-wrap">
+    <div class="table-wrapper">
 
       <table>
 
