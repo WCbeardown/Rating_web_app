@@ -1410,6 +1410,11 @@ function renderResults(
   title.textContent =
     `第${tournamentNumber}回　結果`;
 
+  title.insertAdjacentHTML(
+  "afterend",
+  `<div class="sort-guide">「会員番号」や「大会前レーティング」や「増減」をクリックすると、並び替えできます</div>`
+  );
+
   // 現在の並び順
   let currentSort = null;
 
