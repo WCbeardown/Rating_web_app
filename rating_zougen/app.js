@@ -1394,113 +1394,128 @@ function renderResults(
 ) {
 
   const section =
-    document.getElementById(
-      "resultSection"
-    );
-
+    document.getElementById("resultSection");
 
   const title =
-    document.getElementById(
-      "resultTitle"
-    );
-
+    document.getElementById("resultTitle");
 
   const body =
-    document.getElementById(
-      "resultBody"
-    );
+    document.getElementById("resultBody");
 
-
-  if (
-    !section ||
-    !title ||
-    !body
-  ) {
-
-    console.error(
-      "結果表示用HTMLが見つかりません"
-    );
-
+  if (!section || !title || !body) {
+    console.error("結果表示用HTMLが見つかりません");
     return;
-
   }
-
 
   title.textContent =
     `第${tournamentNumber}回　結果`;
 
+  // 現在の並び順
+  let currentSort = null;
 
-  body.innerHTML =
-    results
-      .map(
-        record => {
+  // 昇順・降順
+  let sortAsc = true;
 
-          let changeText =
-            "―";
+  function renderTable() {
 
+    // 並び替え用にコピー
+    const sortedResults = [...results];
 
-          if (
-            record.change !== null
-          ) {
+    if (currentSort) {
 
-            if (
-              record.change > 0
-            ) {
+      sortedResults.sort((a, b) => {
 
+        let valueA;
+        let valueB;
+
+        if (currentSort === "memberNo") {
+          valueA = Number(a.memberNo);
+          valueB = Number(b.memberNo);
+
+        } else if (currentSort === "name") {
+          valueA = a.name || "";
+          valueB = b.name || "";
+
+        } else if (currentSort === "beforeRating") {
+          valueA = a.beforeRating ?? -Infinity;
+          valueB = b.beforeRating ?? -Infinity;
+
+        } else if (currentSort === "afterRating") {
+          valueA = a.afterRating ?? -Infinity;
+          valueB = b.afterRating ?? -Infinity;
+
+        } else if (currentSort === "change") {
+          valueA = a.change ?? -Infinity;
+          valueB = b.change ?? -Infinity;
+        }
+
+        let comparison;
+
+        if (
+          typeof valueA === "string" &&
+          typeof valueB === "string"
+        ) {
+          comparison =
+            valueA.localeCompare(
+              valueB,
+              "ja"
+            );
+        } else {
+          comparison =
+            valueA - valueB;
+        }
+
+        return sortAsc
+          ? comparison
+          : -comparison;
+      });
+    }
+
+    function arrow(column) {
+
+      if (currentSort !== column) {
+        return "";
+      }
+
+      return sortAsc ? " ↑" : " ↓";
+    }
+
+    body.innerHTML =
+      sortedResults
+        .map(record => {
+
+          let changeText = "―";
+
+          if (record.change !== null) {
+
+            if (record.change > 0) {
               changeText =
                 `+${record.change}`;
-
-            }
-            else {
-
+            } else {
               changeText =
-                String(
-                  record.change
-                );
-
+                String(record.change);
             }
-
           }
 
+          let changeClass = "";
 
-          let changeClass =
-            "";
-
-
-          if (
-            record.change > 0
-          ) {
-
-            changeClass =
-              "positive";
-
+          if (record.change > 0) {
+            changeClass = "positive";
           }
 
-
-          if (
-            record.change < 0
-          ) {
-
-            changeClass =
-              "negative";
-
+          if (record.change < 0) {
+            changeClass = "negative";
           }
-
 
           return `
-
             <tr>
 
               <td>
-                ${escapeHtml(
-                  record.memberNo
-                )}
+                ${escapeHtml(record.memberNo)}
               </td>
 
               <td>
-                ${escapeHtml(
-                  record.name || "―"
-                )}
+                ${escapeHtml(record.name || "―")}
               </td>
 
               <td>
@@ -1524,26 +1539,82 @@ function renderResults(
               </td>
 
             </tr>
-
           `;
+        })
+        .join("");
 
-        }
-      )
-      .join("");
+    // 見出しを作る
+    const table =
+      body.closest("table");
 
+    if (!table) return;
 
-  section.classList.remove(
-    "hidden"
-  );
+    const thead =
+      table.querySelector("thead");
 
+    if (!thead) return;
+
+    thead.innerHTML = `
+      <tr>
+        <th data-sort="memberNo">
+          会員番号${arrow("memberNo")}
+        </th>
+
+        <th data-sort="name">
+          氏名${arrow("name")}
+        </th>
+
+        <th data-sort="beforeRating">
+          大会前レーティング${arrow("beforeRating")}
+        </th>
+
+        <th data-sort="afterRating">
+          大会後レーティング${arrow("afterRating")}
+        </th>
+
+        <th data-sort="change">
+          増減${arrow("change")}
+        </th>
+      </tr>
+    `;
+
+    // 見出しをクリック
+    thead
+      .querySelectorAll("th[data-sort]")
+      .forEach(th => {
+
+        th.addEventListener(
+          "click",
+          () => {
+
+            const column =
+              th.dataset.sort;
+
+            if (currentSort === column) {
+              // 同じ項目を押したら反転
+              sortAsc = !sortAsc;
+            } else {
+              // 新しい項目は昇順から
+              currentSort = column;
+              sortAsc = true;
+            }
+
+            renderTable();
+          }
+        );
+
+      });
+  }
+
+  renderTable();
+
+  section.classList.remove("hidden");
 
   section.scrollIntoView({
     behavior: "smooth",
     block: "start"
   });
-
 }
-
 
 // ============================================================
 // Supabase利用ログ
