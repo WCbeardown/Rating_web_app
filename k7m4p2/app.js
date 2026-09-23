@@ -113,42 +113,71 @@ function renderRecentStats(data) {
     let inputText = "";
 
     if (row.input_data && typeof row.input_data === "object") {
-      inputText = Object.entries(row.input_data)
-        .map(([key, value]) => {
-    if (Array.isArray(value)) {
-    
-      value = value.map(item => {
-    
-        // habikino_champions の選択項目
-        // 例：
-        // { part: "2", rank: "1", className: "B" }
-        // → B21
-        if (
-          item &&
-          typeof item === "object" &&
-          item.className &&
-          item.part &&
-          item.rank
-        ) {
-          return `${item.className}${item.part}${item.rank}`;
-        }
-    
-        return String(item);
-    
-      }).join(", ");
-    
-    } else if (
-      typeof value === "object" &&
-      value !== null
-    ) {
-    
-      value = JSON.stringify(value);
-    
-    }
 
-          return `${key}: ${value}`;
-        })
-        .join(" / ");
+      // rating_calc は必要な4項目だけ表示
+      if (row.app_name === "rating_calc") {
+
+        const d = row.input_data;
+        const items = [];
+
+        if (d.myRating !== undefined) {
+          items.push(`myRating: ${d.myRating}`);
+        }
+
+        if (d.finalRating !== undefined) {
+          items.push(`finalRating: ${d.finalRating}`);
+        }
+
+        if (d.wins !== undefined) {
+          items.push(`wins: ${d.wins}`);
+        }
+
+        if (d.losses !== undefined) {
+          items.push(`losses: ${d.losses}`);
+        }
+
+        inputText = items.join(" / ");
+
+      } else {
+
+        // その他のアプリ
+        inputText = Object.entries(row.input_data)
+          .map(([key, value]) => {
+
+            if (Array.isArray(value)) {
+
+              value = value.map(item => {
+
+                // habikino_champions
+                // { part: "2", rank: "1", className: "B" }
+                // → B21
+                if (
+                  item &&
+                  typeof item === "object" &&
+                  item.className &&
+                  item.part &&
+                  item.rank
+                ) {
+                  return `${item.className}${item.part}${item.rank}`;
+                }
+
+                return String(item);
+
+              }).join(", ");
+
+            } else if (
+              typeof value === "object" &&
+              value !== null
+            ) {
+
+              value = JSON.stringify(value);
+
+            }
+
+            return `${key}: ${value}`;
+          })
+          .join(" / ");
+      }
     }
 
     return `
