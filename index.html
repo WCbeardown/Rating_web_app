@@ -39,43 +39,5 @@
 </div>
 </main>
 
-<script>
-const SUPABASE_URL = "https://hbzjahdvxvlakbuiupcq.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xQDcPbUu3LwFrFrsgpBhGQ_9edjU5EQ";
-
-const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-);
-
-document
-    .getElementById("ratingChangeLink")
-    .addEventListener("click", async function(event) {
-
-        // 先に外部ページへ移動するのを止める
-        event.preventDefault();
-
-        try {
-            const { error } = await supabaseClient
-                .from("app_usage")
-                .insert({
-                    app_name: "rating_change",
-                    action: "open",
-                    input_data: {}
-                });
-
-            if (error) {
-                console.error("利用ログ保存エラー:", error);
-            }
-
-        } catch (error) {
-            console.error("利用ログ保存エラー:", error);
-        }
-
-        // 保存処理が終わってから移動
-        window.location.href = this.href;
-    });
-</script>
-
 </body>
 </html>
